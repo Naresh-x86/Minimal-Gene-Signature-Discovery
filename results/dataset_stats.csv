@@ -1,0 +1,6 @@
+,value
+n_samples,286
+n_relapse,69
+n_no_relapse,217
+n_probes_raw,13744
+n_probes_after_var_filter,11045

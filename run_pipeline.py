@@ -1,0 +1,153 @@
+# -*- coding: utf-8 -*-
+"""
+run_pipeline.py -- One-command Phase 1 pipeline runner.
+
+Usage
+-----
+    # Full run (downloads data, runs search + benchmark, saves results):
+    python run_pipeline.py
+
+    # Quick run (fewer genes, skip benchmark -- good for testing):
+    python run_pipeline.py --max-genes 15 --skip-benchmark
+
+    # Force re-download even if local cache exists:
+    python run_pipeline.py --force-download
+
+Steps
+-----
+    [1] Download & parse GSE2034 gene expression dataset
+    [2] Preprocess (log-transform, filter, train/test split)
+    [3] Rank genes by differential expression (statistical filter)
+    [4] Sequential greedy search  <-- reference single-core implementation
+    [5] GPU greedy search         <-- HPC implementation
+    [6] HPC benchmark             <-- scaling study (1-core vs N-core vs GPU)
+    [7] Save all results to results/
+
+After this script finishes, run:
+    python notebooks/make_figures.py
+to generate the slide-ready PNG figures.
+"""
+
+import argparse
+import os
+import sys
+import time
+from pathlib import Path
+
+
+import numpy as np
+import pandas as pd
+
+ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT))
+
+from src.config            import RESULTS_DIR, MAX_SIGNATURE_SIZE
+from src.data_loader       import get_data
+from src.preprocessing     import preprocess
+from src.feature_selection import rank_genes
+from src.signature_search  import run_sequential
+from src.gpu_search        import run_gpu, TORCH_AVAILABLE
+from src.benchmark         import run_benchmark
+
+
+def _banner(text: str) -> None:
+    print(f"\n{'='*60}\n  {text}\n{'='*60}")
+
+
+def main(args: argparse.Namespace) -> None:
+    print("=" * 60)
+    print("  Minimal Gene Signature Discovery -- Phase 1")
+    print("=" * 60)
+    t_total = time.perf_counter()
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # [1] Data
+    _banner("[1/6] Loading dataset")
+    expr_df, meta_df = get_data(force_download=args.force_download)
+
+    # [2] Preprocessing
+    _banner("[2/6] Preprocessing")
+    prep = preprocess(expr_df, meta_df)
+
+    # Save dataset stats for figure generation
+    pd.Series(prep["stats"]).to_csv(RESULTS_DIR / "dataset_stats.csv", header=["value"])
+
+    # [3] Gene ranking
+    _banner("[3/6] Ranking genes by differential expression")
+    cand_ids, cand_idx, ranking_df = rank_genes(
+        prep["X_train"], prep["y_train"], prep["gene_ids"]
+    )
+    ranking_df.to_csv(RESULTS_DIR / "gene_ranking.csv", index=False)
+    print(f"  Saved: gene_ranking.csv  ({len(ranking_df)} genes ranked)")
+
+    # [4] Sequential greedy search
+    _banner(f"[4/6] Sequential greedy forward selection (up to {args.max_genes} genes)")
+    seq_results = run_sequential(
+        prep["X_train"], prep["y_train"],
+        prep["X_test"],  prep["y_test"],
+        cand_idx, max_genes=args.max_genes,
+    )
+    # Add readable gene names
+    id_map = {i: gid for i, gid in enumerate(prep["gene_ids"])}
+    seq_results["gene_id"] = seq_results["gene_index"].map(id_map)
+    seq_results.to_csv(RESULTS_DIR / "sequential_search_results.csv", index=False)
+    print(f"  Saved: sequential_search_results.csv")
+
+    # [5] GPU greedy search
+    _banner("[5/6] GPU greedy search")
+    if TORCH_AVAILABLE:
+        try:
+            gpu_results = run_gpu(
+                prep["X_train"], prep["y_train"],
+                prep["X_test"],  prep["y_test"],
+                cand_idx, max_genes=args.max_genes,
+            )
+            gpu_results["gene_id"] = gpu_results["gene_index"].map(id_map)
+            gpu_results.to_csv(RESULTS_DIR / "gpu_search_results.csv", index=False)
+            print(f"  Saved: gpu_search_results.csv")
+        except Exception as exc:
+            print(f"  GPU search failed: {exc}")
+    else:
+        print("  PyTorch not found -- GPU search skipped.")
+        print("  Install: pip install torch --index-url https://download.pytorch.org/whl/cu121")
+
+    # [6] HPC benchmark
+    if args.skip_benchmark:
+        _banner("[6/6] HPC benchmark SKIPPED  (--skip-benchmark flag used)")
+    else:
+        _banner("[6/6] HPC benchmark -- scaling study")
+        run_benchmark()
+
+    # Summary
+    best_auc = seq_results["val_auc"].max()
+    best_n   = int(seq_results.loc[seq_results["val_auc"].idxmax(), "step"])
+    total    = time.perf_counter() - t_total
+
+    print("\n" + "=" * 60)
+    print("  RESULTS SUMMARY")
+    print("=" * 60)
+    print(f"  Dataset    : {prep['stats']['n_samples']} samples x "
+          f"{prep['stats']['n_probes_raw']:,} probes")
+    print(f"  Candidates : {len(cand_idx)} genes")
+    print(f"  Best AUC   : {best_auc:.4f}  (achieved at {best_n} genes)")
+    print(f"  Total time : {total:.1f}s")
+    print(f"\n  Outputs -> results/")
+    print(f"\nNext: python notebooks/make_figures.py")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Minimal Gene Signature Discovery Pipeline")
+    parser.add_argument(
+        "--max-genes", type=int, default=MAX_SIGNATURE_SIZE,
+        help=f"Maximum signature size to explore (default: {MAX_SIGNATURE_SIZE})",
+    )
+    parser.add_argument(
+        "--skip-benchmark", action="store_true",
+        help="Skip the HPC benchmark (much faster for quick runs)",
+    )
+    parser.add_argument(
+        "--force-download", action="store_true",
+        help="Re-download the dataset even if local files already exist",
+    )
+    main(parser.parse_args())
