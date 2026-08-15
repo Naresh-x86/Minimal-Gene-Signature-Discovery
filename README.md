@@ -1,7 +1,5 @@
 # Minimal Gene Signature Discovery
 
-> **AIML + Biological Data + HPC** — B.Tech Phase 1 Project
-
 ## Core Question
 
 > *How few genes do we actually need to predict whether a breast cancer patient will relapse — and how fast can we find them?*
