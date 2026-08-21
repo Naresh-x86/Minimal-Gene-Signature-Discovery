@@ -32,17 +32,17 @@ FIG_DIR = RESULTS_DIR / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
 # ─── Global style ──────────────────────────────────────────────────────────────
-BG      = "#0D1117"
-CARD    = "#161B22"
-BORDER  = "#21262D"
-TEXT    = "#E6EDF3"
-MUTED   = "#8B949E"
-C0      = "#58A6FF"   # blue
-C1      = "#3FB950"   # green
-C2      = "#FF7B72"   # red/orange
-C3      = "#D2A8FF"   # purple
-C4      = "#FFA657"   # amber
-C5      = "#F78166"   # salmon
+BG      = "#FFFFFF"   # white background
+CARD    = "#F6F8FA"   # light gray card background
+BORDER  = "#D0D7DE"   # borders
+TEXT    = "#24292F"   # dark gray text
+MUTED   = "#57606A"   # muted gray text
+C0      = "#0969DA"   # blue
+C1      = "#2DA44E"   # green
+C2      = "#CF222E"   # red
+C3      = "#8250DF"   # purple
+C4      = "#9A6700"   # amber
+C5      = "#BC4C00"   # salmon
 
 plt.rcParams.update({
     "figure.facecolor"  : BG,
@@ -204,19 +204,7 @@ def fig_auc_vs_size() -> None:
     ax.text(n_genes[-1] * 0.02, max_auc + 0.004,
             f"Best AUC = {max_auc:.3f}", color=C4, fontsize=11)
 
-    # Mark the "95% of max" point
-    threshold = 0.95 * max_auc
-    hits = np.where(val_auc >= threshold)[0]
-    if len(hits):
-        ge_n, ge_auc = n_genes[hits[0]], val_auc[hits[0]]
-        ax.scatter([ge_n], [ge_auc], s=250, marker="*", color=C1, zorder=5)
-        ax.annotate(
-            f"≥95% of max AUC\nwith just {ge_n} gene{'s' if ge_n > 1 else ''}",
-            xy=(ge_n, ge_auc),
-            xytext=(ge_n + max(1, len(n_genes) // 8), ge_auc - 0.025),
-            color=C1, fontsize=11, fontweight="bold",
-            arrowprops=dict(arrowstyle="->", color=C1, lw=1.5),
-        )
+
 
     ax.set_xlabel("Number of Genes in Signature", fontsize=13)
     ax.set_ylabel("Test AUC  (Logistic Regression, held-out set)", fontsize=13)
