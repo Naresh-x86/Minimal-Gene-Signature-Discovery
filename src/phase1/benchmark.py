@@ -98,7 +98,7 @@ def _parallel_cpu(
 
 def _gpu(proj: np.ndarray, cands: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Score all candidates in one GPU batched operation."""
-    from src.gpu_search import score_all_candidates_gpu
+    from src.phase1.gpu_search import score_all_candidates_gpu
     dev    = torch.device("cuda")
     proj_t = torch.tensor(proj,        dtype=torch.float32, device=dev)
     cand_t = torch.tensor(cands,       dtype=torch.float32, device=dev)

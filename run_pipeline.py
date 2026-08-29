@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-run_pipeline.py -- One-command Phase 1 pipeline runner.
+run_pipeline.py -- Pipeline runner for all phases.
 
 Usage
 -----
-    # Full run (downloads data, runs search + benchmark, saves results):
+    # Full Phase 1 run (downloads data, greedy search + benchmark):
     python run_pipeline.py
 
     # Quick run (fewer genes, skip benchmark -- good for testing):
@@ -13,14 +13,14 @@ Usage
     # Force re-download even if local cache exists:
     python run_pipeline.py --force-download
 
-Steps
------
+Phase 1 Steps
+-------------
     [1] Download & parse GSE2034 gene expression dataset
     [2] Preprocess (log-transform, filter, train/test split)
     [3] Rank genes by differential expression (statistical filter)
-    [4] Sequential greedy search  <-- reference single-core implementation
-    [5] GPU greedy search         <-- HPC implementation
-    [6] HPC benchmark             <-- scaling study (1-core vs N-core vs GPU)
+    [4] Sequential greedy search  <-- reference single-core (src/phase1/)
+    [5] GPU greedy search         <-- HPC implementation   (src/phase1/)
+    [6] HPC benchmark             <-- scaling study        (src/phase1/)
     [7] Save all results to results/
 
 After this script finishes, run:
@@ -45,9 +45,9 @@ from src.config            import RESULTS_DIR, MAX_SIGNATURE_SIZE
 from src.data_loader       import get_data
 from src.preprocessing     import preprocess
 from src.feature_selection import rank_genes
-from src.signature_search  import run_sequential
-from src.gpu_search        import run_gpu, TORCH_AVAILABLE
-from src.benchmark         import run_benchmark
+from src.phase1.signature_search  import run_sequential
+from src.phase1.gpu_search        import run_gpu, TORCH_AVAILABLE
+from src.phase1.benchmark         import run_benchmark
 
 
 def _banner(text: str) -> None:
