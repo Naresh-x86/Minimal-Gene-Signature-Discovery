@@ -413,7 +413,7 @@ def run_ga(X_train: np.ndarray,
         # Combine: survivors (unchanged) + new children
         population = np.vstack([elites, np.array(children)])
 
-    best_gene_ids = cand_idx[best_individual]
+    best_gene_ids = np.array(cand_idx)[best_individual.astype(int)]
     print(f"\n  Best signature genes: {best_gene_ids.tolist()}")
     print(f"  Best train AUC: {best_train_auc:.4f}  |  Best val AUC: {records[-1]['best_val_auc']:.4f}")
 

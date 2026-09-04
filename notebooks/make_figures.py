@@ -337,9 +337,136 @@ def fig_hpc_speedup() -> None:
 
 # ─── Entry point ───────────────────────────────────────────────────────────────
 
+# ─── Figure 6: GA vs Greedy AUC comparison ────────────────────────────────────
+
+def fig_ga_vs_greedy() -> None:
+    print("\n[6] GA vs Greedy AUC comparison ...")
+    ga_path  = RESULTS_DIR / "ga_results.csv"
+    seq_path = RESULTS_DIR / "sequential_search_results.csv"
+    if not ga_path.exists() or not seq_path.exists():
+        print("  WARNING: ga_results.csv or sequential_search_results.csv not found -- skipping.")
+        return
+
+    ga_df  = pd.read_csv(ga_path)
+    seq_df = pd.read_csv(seq_path)
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    fig.suptitle(
+        "Phase 1 vs Phase 2: Greedy Search vs Genetic Algorithm",
+        fontsize=16, fontweight="bold", color=TEXT,
+    )
+
+    # ── Left: GA evolution curve (val AUC over generations) ──
+    ax = axes[0]
+    gens    = ga_df["generation"].values
+    val_auc = ga_df["best_val_auc"].values
+    train_auc = ga_df["best_train_auc"].values
+
+    ax.plot(gens, train_auc, color=C3, linewidth=2, linestyle="--", label="GA train AUC (best so far)", alpha=0.7)
+    ax.plot(gens, val_auc,   color=C0, linewidth=2.5, label="GA val AUC (test set)")
+
+    # Greedy best val AUC as a horizontal reference line
+    greedy_best = seq_df["val_auc"].max()
+    ax.axhline(greedy_best, color=C2, linewidth=1.8, linestyle=":",
+               label=f"Greedy best val AUC = {greedy_best:.3f}")
+
+    ga_best = val_auc.max()
+    ax.axhline(ga_best, color=C1, linewidth=1.8, linestyle=":",
+               label=f"GA best val AUC = {ga_best:.3f}")
+
+    ax.set_xlabel("Generation", fontsize=13)
+    ax.set_ylabel("AUC (Logistic Regression, held-out set)", fontsize=13)
+    ax.set_title("GA Learning Curve", fontsize=14, fontweight="bold")
+    ax.legend(fontsize=10)
+    ax.grid(True, axis="y", alpha=0.4)
+    ax.text(0.5, -0.12,
+            "Each generation: 100 signatures evolve via crossover + mutation.",
+            ha="center", transform=ax.transAxes, fontsize=10, color=MUTED, style="italic")
+
+    # ── Right: direct bar comparison of best val AUCs ──
+    ax2 = axes[1]
+    methods = ["Greedy\n(Phase 1)", "Genetic Algorithm\n(Phase 2)"]
+    aucs    = [greedy_best, ga_best]
+    colors  = [C2, C1]
+    bars    = ax2.bar(methods, aucs, color=colors, width=0.45, edgecolor="none")
+    for bar, auc in zip(bars, aucs):
+        ax2.text(bar.get_x() + bar.get_width() / 2,
+                 bar.get_height() + 0.005,
+                 f"AUC = {auc:.4f}",
+                 ha="center", fontsize=13, fontweight="bold", color=TEXT)
+
+    improvement = (ga_best - greedy_best) / greedy_best * 100
+    ax2.set_title(f"Best Val AUC Comparison (+{improvement:.1f}% improvement)",
+                  fontsize=13, fontweight="bold")
+    ax2.set_ylabel("Best Val AUC (held-out test set)", fontsize=13)
+    ax2.set_ylim(0, min(1.0, max(aucs) * 1.25))
+    ax2.tick_params(bottom=False)
+    ax2.text(0.5, -0.12,
+             "Both use the same 500 candidate genes and 20-gene signature size.",
+             ha="center", transform=ax2.transAxes, fontsize=10, color=MUTED, style="italic")
+
+    plt.tight_layout()
+    _save("06_ga_vs_greedy.png")
+
+
+# ─── Figure 7: GA HPC benchmark ───────────────────────────────────────────────
+
+def fig_ga_benchmark() -> None:
+    print("\n[7] GA HPC benchmark ...")
+    bench_path = RESULTS_DIR / "ga_benchmark_results.csv"
+    if not bench_path.exists():
+        print("  WARNING: ga_benchmark_results.csv not found -- run without --skip-benchmark.")
+        return
+
+    df = pd.read_csv(bench_path)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5))
+    fig.suptitle(
+        "Phase 2 HPC: GA Fitness Evaluation Benchmark\n"
+        "i7-13650HX  x  NVIDIA RTX 4060  x  100 individuals  x  20 genes",
+        fontsize=13, fontweight="bold", color=TEXT,
+    )
+
+    colors = [C2, C0, C3, C4]
+    x      = range(len(df))
+
+    # Left: runtime bar chart
+    bars = ax1.bar(x, df["mean_s"] * 1000, color=colors[:len(df)],
+                   width=0.5, edgecolor="none")
+    for bar, row in zip(bars, df.itertuples()):
+        ax1.text(bar.get_x() + bar.get_width() / 2,
+                 bar.get_height() + 0.3,
+                 f"{row.mean_s*1000:.1f} ms",
+                 ha="center", fontsize=10, fontweight="bold", color=TEXT)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(df["mode"].tolist(), fontsize=9, rotation=10)
+    ax1.set_ylabel("Time per generation (ms)", fontsize=12)
+    ax1.set_title("Runtime", fontsize=13, fontweight="bold")
+
+    # Right: speedup bar chart
+    speedup_colors = [C2 if s < 1.0 else C1 for s in df["speedup"]]
+    bars2 = ax2.bar(x, df["speedup"], color=speedup_colors, width=0.5, edgecolor="none")
+    for bar, row in zip(bars2, df.itertuples()):
+        ax2.text(bar.get_x() + bar.get_width() / 2,
+                 bar.get_height() + 0.02,
+                 f"{row.speedup:.2f}x",
+                 ha="center", fontsize=11, fontweight="bold", color=TEXT)
+    ax2.axhline(1, color=MUTED, linewidth=1.5, linestyle=":", alpha=0.8)
+    ax2.text(0.02, 1.04, "baseline (1x)", color=MUTED, fontsize=9, transform=ax2.get_yaxis_transform())
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(df["mode"].tolist(), fontsize=9, rotation=10)
+    ax2.set_ylabel("Speedup vs sequential", fontsize=12)
+    ax2.set_title("Speedup over Sequential", fontsize=13, fontweight="bold")
+
+    plt.tight_layout()
+    _save("07_ga_hpc_benchmark.png")
+
+
+# ─── Entry point ───────────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
     print("=" * 55)
-    print("  Generating slide-ready figures …")
+    print("  Generating slide-ready figures ...")
     print("=" * 55)
 
     fig_dataset_overview()
@@ -347,6 +474,8 @@ if __name__ == "__main__":
     fig_auc_vs_size()
     fig_top_genes()
     fig_hpc_speedup()
+    fig_ga_vs_greedy()
+    fig_ga_benchmark()
 
-    print(f"\n✓ All figures saved to: {FIG_DIR}")
+    print(f"\nAll figures saved to: {FIG_DIR}")
     print("  Copy the PNGs directly into your presentation slides.")

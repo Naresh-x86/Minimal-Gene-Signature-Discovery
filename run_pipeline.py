@@ -48,6 +48,8 @@ from src.feature_selection import rank_genes
 from src.phase1.signature_search  import run_sequential
 from src.phase1.gpu_search        import run_gpu, TORCH_AVAILABLE
 from src.phase1.benchmark         import run_benchmark
+from src.phase2.genetic_search    import run_ga, GA_SIGNATURE_SIZE
+from src.phase2.ga_benchmark      import run_ga_benchmark
 
 
 def _banner(text: str) -> None:
@@ -111,26 +113,46 @@ def main(args: argparse.Namespace) -> None:
         print("  PyTorch not found -- GPU search skipped.")
         print("  Install: pip install torch --index-url https://download.pytorch.org/whl/cu121")
 
-    # [6] HPC benchmark
+    # [6] Phase 1 HPC benchmark
     if args.skip_benchmark:
-        _banner("[6/6] HPC benchmark SKIPPED  (--skip-benchmark flag used)")
+        _banner("[6/7] Phase 1 HPC benchmark SKIPPED  (--skip-benchmark flag)")
     else:
-        _banner("[6/6] HPC benchmark -- scaling study")
+        _banner("[6/7] Phase 1 HPC benchmark -- greedy scoring scaling study")
         run_benchmark()
 
+    # [7] Phase 2 -- Genetic Algorithm
+    _banner(f"[7/7] Phase 2: Genetic Algorithm (sequential mode, {GA_SIGNATURE_SIZE} genes)")
+    ga_results = run_ga(
+        prep["X_train"], prep["y_train"],
+        prep["X_test"],  prep["y_test"],
+        cand_idx,
+        mode="sequential",
+    )
+    ga_results.to_csv(RESULTS_DIR / "ga_results.csv", index=False)
+    print(f"  Saved: ga_results.csv")
+
+    if not args.skip_benchmark:
+        _banner("  Phase 2: GA HPC benchmark (sequential vs parallel CPU vs GPU)")
+        # Slice X_train to the 500-candidate columns -- same view the GA uses internally
+        X_cands_train = prep["X_train"][:, cand_idx]
+        ga_bench = run_ga_benchmark(X_cands_train, prep["y_train"])
+        ga_bench.to_csv(RESULTS_DIR / "ga_benchmark_results.csv", index=False)
+
     # Summary
-    best_auc = seq_results["val_auc"].max()
-    best_n   = int(seq_results.loc[seq_results["val_auc"].idxmax(), "step"])
-    total    = time.perf_counter() - t_total
+    best_auc_greedy = seq_results["val_auc"].max()
+    best_n_greedy   = int(seq_results.loc[seq_results["val_auc"].idxmax(), "step"])
+    best_auc_ga     = ga_results["best_val_auc"].max()
+    total           = time.perf_counter() - t_total
 
     print("\n" + "=" * 60)
     print("  RESULTS SUMMARY")
     print("=" * 60)
-    print(f"  Dataset    : {prep['stats']['n_samples']} samples x "
+    print(f"  Dataset         : {prep['stats']['n_samples']} samples x "
           f"{prep['stats']['n_probes_raw']:,} probes")
-    print(f"  Candidates : {len(cand_idx)} genes")
-    print(f"  Best AUC   : {best_auc:.4f}  (achieved at {best_n} genes)")
-    print(f"  Total time : {total:.1f}s")
+    print(f"  Candidates      : {len(cand_idx)} genes")
+    print(f"  Greedy best AUC : {best_auc_greedy:.4f}  ({best_n_greedy} genes)")
+    print(f"  GA best AUC     : {best_auc_ga:.4f}  ({GA_SIGNATURE_SIZE} genes)")
+    print(f"  Total time      : {total:.1f}s")
     print(f"\n  Outputs -> results/")
     print(f"\nNext: python notebooks/make_figures.py")
     print("=" * 60)
