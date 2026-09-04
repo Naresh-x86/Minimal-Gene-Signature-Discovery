@@ -109,5 +109,8 @@ python run_pipeline.py --max-genes 15 --skip-benchmark
 ## Phase 2 (in progress)
 
 - [x] Repository reorganization (`src/phase1/`, `src/phase2/`)
-- [ ] Genetic Algorithm search engine (target: Sep 4)
+- [x] Genetic Algorithm search engine (completed Sep 4)
+  - Best val AUC: **0.7727** vs Greedy 0.5942 (+30.1% improvement)
+  - GPU fitness evaluation: **2.69x** faster than sequential
+  - 200 generations x 100 individuals in 1.6s (sequential)
 - [ ] Biological pathway integration via gene interaction graph (target: Sep 10)
