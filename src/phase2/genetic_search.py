@@ -63,10 +63,12 @@ HPC comparison.
 import time
 import numpy as np
 import pandas as pd
+from typing import List
 from joblib import Parallel, delayed
 
-from src.config import RANDOM_STATE
-from src.utils  import auc_from_scores, final_lr_auc
+from src.config            import RANDOM_STATE
+from src.utils             import auc_from_scores, final_lr_auc
+from src.phase2.pathway_graph import load_pathway_graph, pathway_fitness_bonus, describe_graph, score_signature_with_pathway
 
 # ── GA hyperparameters ────────────────────────────────────────────────────────
 # All these live here so they are easy to find and change.
@@ -304,7 +306,7 @@ def run_ga(X_train: np.ndarray,
            y_train: np.ndarray,
            X_test:  np.ndarray,
            y_test:  np.ndarray,
-           cand_idx: np.ndarray,
+           cand_ids: List[str],
            mode: str = "sequential",
            n_jobs: int = -1,
            seed: int = RANDOM_STATE) -> pd.DataFrame:
@@ -313,11 +315,11 @@ def run_ga(X_train: np.ndarray,
 
     Parameters
     ----------
-    X_train, y_train : training expression matrix + labels
+    X_train, y_train : training expression matrix + labels (already sliced to candidates)
                        Shape: (228 samples, 500 candidates)
     X_test, y_test   : held-out test data (58 samples, 500 candidates)
-    cand_idx         : the 500 candidate gene indices from feature selection
-                       (used to map back to real gene names at the end)
+    cand_ids         : the 500 candidate gene names (strings)
+                       (used for pathway biological scoring and final reporting)
     mode             : which HPC engine to use for fitness evaluation
                        'sequential' | 'parallel' | 'gpu'
     n_jobs           : CPU cores for parallel mode (-1 = all cores)
@@ -332,8 +334,12 @@ def run_ga(X_train: np.ndarray,
         elapsed_s       : wall-clock time for this generation
     """
     rng     = np.random.default_rng(seed)
-    n_cands = len(cand_idx)
+    n_cands = len(cand_ids)
     n_elite = max(2, int(GA_POPULATION_SIZE * GA_ELITE_FRACTION))
+    
+    # Load biological pathway graph for the fitness bonus
+    graph = load_pathway_graph()
+    describe_graph(graph)
 
     # Choose the fitness evaluation function
     if mode == "gpu" and TORCH_AVAILABLE:
@@ -368,7 +374,19 @@ def run_ga(X_train: np.ndarray,
         t_gen = time.perf_counter()
 
         # ── STEP 2: FITNESS ───────────────────────────────────────────────────
-        fitness = _evaluate(population)
+        base_fitness = _evaluate(population)
+        
+        # Add Biological Pathway Bonus
+        # This is where the magic happens: signatures with connected genes
+        # get a small AUC bonus, encouraging biologically meaningful results.
+        if graph:
+            bonus = np.zeros(GA_POPULATION_SIZE)
+            for i, ind in enumerate(population):
+                gene_names = [cand_ids[idx] for idx in ind]
+                bonus[i]   = pathway_fitness_bonus(gene_names, graph)
+            fitness = base_fitness + bonus
+        else:
+            fitness = base_fitness
 
         # ── STEP 3: SELECTION ─────────────────────────────────────────────────
         # Sort by fitness descending, keep the top n_elite
@@ -413,8 +431,11 @@ def run_ga(X_train: np.ndarray,
         # Combine: survivors (unchanged) + new children
         population = np.vstack([elites, np.array(children)])
 
-    best_gene_ids = np.array(cand_idx)[best_individual.astype(int)]
-    print(f"\n  Best signature genes: {best_gene_ids.tolist()}")
-    print(f"  Best train AUC: {best_train_auc:.4f}  |  Best val AUC: {records[-1]['best_val_auc']:.4f}")
+    best_gene_names = [cand_ids[i] for i in best_individual]
+    print(f"\n  Best signature genes: {best_gene_names}")
+    print(f"  Best train AUC (incl bonus): {best_train_auc:.4f}  |  Best val AUC: {records[-1]['best_val_auc']:.4f}")
+    
+    if graph:
+        score_signature_with_pathway(best_gene_names, graph)
 
     return pd.DataFrame(records)
