@@ -22,25 +22,6 @@ HLA-DRA,CD74,MHC Class II Antigen Presentation,chaperone-binding,KEGG hsa04612
 HLA-DRB1,CD74,MHC Class II Antigen Presentation,chaperone-binding,KEGG hsa04612
 HLA-DRB1,CD4,MHC Class II Antigen Presentation,co-receptor,KEGG hsa04612
 HLA-DRB6,CD4,MHC Class II Antigen Presentation,co-receptor,KEGG hsa04612
-HLA-DMA,HLA-DMA_1,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DMA,HLA-DMA_2,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DMA,HLA-DMA_3,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DMA,HLA-DMA_4,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DMA,HLA-DMA_5,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DMA,HLA-DMA_6,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DMA,HLA-DMA_7,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRA,HLA-DRA_1,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRA,HLA-DRA_2,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRA,HLA-DRA_3,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRA,HLA-DRA_4,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRA,HLA-DRA_5,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRA,HLA-DRA_6,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRA,HLA-DRA_7,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRB1,HLA-DRB1_1,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRB1,HLA-DRB1_2,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRB1,HLA-DRB1_3,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRB1,HLA-DRB1_4,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
-HLA-DRB1,HLA-DRB1_5,MHC Class II Antigen Presentation,same-gene-probes,Affymetrix
 CD4,LCK,T-Cell Receptor Signaling,phosphorylation,KEGG hsa04660
 CD4,FYN,T-Cell Receptor Signaling,phosphorylation,KEGG hsa04660
 CD8A,LCK,T-Cell Receptor Signaling,phosphorylation,KEGG hsa04660
@@ -91,10 +72,6 @@ SOD2,FDXR,Mitochondrial Oxidative Stress,mitochondrial-colocalization,PMID:12213
 NOX4,SOD2,Oxidative Stress Response,ROS-regulation,PMID:19261625
 GSTP1,GSTO1,Glutathione Metabolism,paralog-functional,KEGG hsa00480
 HSPA1A,DNAJC12,Heat Shock Response,co-chaperone,KEGG hsa04141
-HSPA1A,HSPA1A_1,Heat Shock Response,same-gene-probes,Affymetrix
-HSPA1A,HSPA1A_2,Heat Shock Response,same-gene-probes,Affymetrix
-HSPA1A,HSPA1A_3,Heat Shock Response,same-gene-probes,Affymetrix
-HSPA1A,HSPA1A_4,Heat Shock Response,same-gene-probes,Affymetrix
 VPS16,VPS33A,HOPS Complex,complex-partner,PMID:12612091
 VPS16,VPS33B,HOPS Complex,complex-partner,PMID:12612091
 VPS16,VPS41,HOPS Complex,complex-partner,PMID:12612091
@@ -103,43 +80,8 @@ VPS33A,VPS41,HOPS Complex,complex-partner,PMID:12612091
 VPS33A,VPS45,HOPS Complex,complex-partner,PMID:12612091
 VPS33B,VPS41,HOPS Complex,complex-partner,PMID:12612091
 VPS33A,VPS28,ESCRT Complex,vesicle-transport,PMID:12612091
-VPS28,VPS28_1,Vesicle Transport,same-gene-probes,Affymetrix
 VPS37C,VPS28,ESCRT Complex,complex-partner,PMID:15001577
-RGL2,RGL2_1,RAS GTPase Signaling,same-gene-probes,Affymetrix
-RGL2,RGL2_2,RAS GTPase Signaling,same-gene-probes,Affymetrix
-RGL2,RGL2_3,RAS GTPase Signaling,same-gene-probes,Affymetrix
-RGL2,RGL2_4,RAS GTPase Signaling,same-gene-probes,Affymetrix
-SURF2,SURF2_1,Surfeit Locus,same-gene-probes,Affymetrix
-NSF,NSF_1,Vesicle Fusion,same-gene-probes,Affymetrix
-NSF,NSF_2,Vesicle Fusion,same-gene-probes,Affymetrix
-C6orf47,C6orf47_1,Chromosome 6 Locus,same-gene-probes,Affymetrix
-C6orf47,C6orf47_2,Chromosome 6 Locus,same-gene-probes,Affymetrix
-C6orf47,C6orf47_3,Chromosome 6 Locus,same-gene-probes,Affymetrix
-C6orf47,C6orf47_4,Chromosome 6 Locus,same-gene-probes,Affymetrix
-C6orf47,C6orf47_5,Chromosome 6 Locus,same-gene-probes,Affymetrix
-C6orf47,C6orf47_6,Chromosome 6 Locus,same-gene-probes,Affymetrix
-TAF4,TAF4_1,Transcription Factor TFIID,same-gene-probes,Affymetrix
-XYLT1,XYLT1_1,Proteoglycan Synthesis,same-gene-probes,Affymetrix
 XYLT1,XYLT2,Proteoglycan Synthesis,paralog-functional,KEGG hsa00534
-B3GALT4,B3GALT4_1,Glycosphingolipid Biosynthesis,same-gene-probes,Affymetrix
-B3GALT4,B3GALT4_2,Glycosphingolipid Biosynthesis,same-gene-probes,Affymetrix
-B3GALT4,B3GALT4_3,Glycosphingolipid Biosynthesis,same-gene-probes,Affymetrix
-B3GALT4,B3GALT4_4,Glycosphingolipid Biosynthesis,same-gene-probes,Affymetrix
-MMP11,MMP11_1,ECM Remodelling,same-gene-probes,Affymetrix
-SCRIB,SCRIB_1,Cell Polarity,same-gene-probes,Affymetrix
-PADI2,PADI2_1,Citrullination,same-gene-probes,Affymetrix
-FAN1,FAN1_1,DNA Repair,same-gene-probes,Affymetrix
-NEDD8,NEDD8_1,Ubiquitin-like Signaling,same-gene-probes,Affymetrix
-GFER,GFER_1,Mitochondrial Disulfide Relay,same-gene-probes,Affymetrix
-FTCD,FTCD_1,Folate Metabolism,same-gene-probes,Affymetrix
-DGAT1,DGAT1_1,Lipid Synthesis,same-gene-probes,Affymetrix
-CACFD1,CACFD1_1,Calcium Signaling,same-gene-probes,Affymetrix
-GFUS,GFUS_1,Hexose Metabolism,same-gene-probes,Affymetrix
-NAP1L4,NAP1L4_1,Chromatin Remodeling,same-gene-probes,Affymetrix
-ZNHIT3,ZNHIT3_1,Chromatin Remodeling,same-gene-probes,Affymetrix
-TM9SF1,TM9SF1_1,Transmembrane Transport,same-gene-probes,Affymetrix
-EMC9,EMC9_1,ER Membrane Complex,same-gene-probes,Affymetrix
-PLA2G10,PLA2G10_1,Phospholipid Metabolism,same-gene-probes,Affymetrix
 NDUFA2,NDUFA4,Mitochondrial Complex I,complex-partner,KEGG hsa00190
 NDUFA2,NDUFA5,Mitochondrial Complex I,complex-partner,KEGG hsa00190
 NDUFA2,NDUFA8,Mitochondrial Complex I,complex-partner,KEGG hsa00190
