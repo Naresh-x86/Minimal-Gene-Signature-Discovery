@@ -11,22 +11,27 @@ Using the **GSE2034** public dataset (286 breast cancer patients × 22,283 genes
 ## Project Structure
 
 ```
-├── src/
-│   ├── config.py              # All tuneable parameters in one place
-│   ├── data_loader.py         # Download + parse GSE2034 from NCBI GEO
-│   ├── preprocessing.py       # Log-transform, variance filter, train/test split
-│   ├── feature_selection.py   # Statistical gene ranking (Mann-Whitney U)
-│   ├── signature_search.py    # Sequential greedy forward selection (baseline)
-│   ├── parallel_search.py     # Multi-core CPU version (joblib)
-│   ├── gpu_search.py          # GPU version (PyTorch) — the HPC contribution
-│   ├── benchmark.py           # Scaling study: 1-core vs N-core vs GPU
-│   └── utils.py               # Shared AUC computation
-├── notebooks/
-│   └── make_figures.py        # Generate all slide-ready plots → results/figures/
-├── data/                      # Auto-downloaded dataset (created on first run)
-├── results/                   # All outputs: CSVs + figures
-├── run_pipeline.py            # One-command runner
-└── requirements.txt
+src/
+├── phase1/                     # Phase 1: Greedy Forward Selection + HPC benchmarking
+│   ├── signature_search.py     # Sequential greedy (single-core baseline)
+│   ├── parallel_search.py      # Greedy parallelised across CPU cores (joblib)
+│   ├── gpu_search.py           # Greedy with GPU batching (PyTorch)
+│   └── benchmark.py            # HPC scaling study: 1-core vs N-core vs GPU
+├── phase2/                     # Phase 2: Genetic Algorithm + Biological Pathways
+│   ├── genetic_search.py       # Genetic Algorithm search engine  [coming Sep 4]
+│   └── pathway_graph.py        # Gene interaction graph scoring   [coming Sep 10]
+├── config.py                   # All tuneable parameters in one place
+├── data_loader.py              # Download + parse GSE2034 from Zenodo / NCBI GEO
+├── feature_selection.py        # Statistical gene ranking (Mann-Whitney U)
+├── preprocessing.py            # Log-transform, variance filter, train/test split
+└── utils.py                    # Shared AUC computation helpers
+
+notebooks/
+└── make_figures.py             # Generate all slide-ready plots -> results/figures/
+
+data/                           # Auto-downloaded dataset (created on first run)
+results/                        # All outputs: CSVs + figures
+run_pipeline.py                 # One-command runner
 ```
 
 ---
@@ -56,15 +61,30 @@ python run_pipeline.py --max-genes 15 --skip-benchmark
 
 ## What Each Module Does
 
+### Shared (both phases)
+
 | Module | Role |
 |--------|------|
-| `data_loader.py` | Downloads GSE2034 from NCBI GEO or Zenodo |
-| `preprocessing.py` | Log₂ transform → Z-score → variance filter → train/test split |
+| `data_loader.py` | Downloads GSE2034 from Zenodo or NCBI GEO |
+| `preprocessing.py` | Log2 transform -> Z-score -> variance filter -> train/test split |
 | `feature_selection.py` | Ranks genes by Mann-Whitney U p-value, keeps top 500 |
+| `utils.py` | AUC calculation helpers used by all search modules |
+
+### Phase 1 — Greedy Forward Selection (`src/phase1/`)
+
+| Module | Role |
+|--------|------|
 | `signature_search.py` | Sequential greedy: add the best gene one step at a time |
 | `parallel_search.py` | Same algorithm, inner loop parallelised across CPU cores |
 | `gpu_search.py` | Same algorithm, inner loop replaced by one batched GPU tensor op |
-| `benchmark.py` | Times all three on synthetic data at N=100…10,000 candidates |
+| `benchmark.py` | Times all three on synthetic data at N=100...10,000 candidates |
+
+### Phase 2 — Genetic Algorithm + Pathways (`src/phase2/`)
+
+| Module | Role |
+|--------|------|
+| `genetic_search.py` | Genetic Algorithm: population-based search that escapes local minima |
+| `pathway_graph.py` | Loads gene interaction graph; adds pathway-connectivity fitness bonus |
 
 ---
 
@@ -72,16 +92,22 @@ python run_pipeline.py --max-genes 15 --skip-benchmark
 
 - **Source:** NCBI GEO ([accession GSE2034](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE2034))
 - **Publication:** Wang et al., *Lancet* 2005
-- **Content:** 286 breast tumour samples × 22,283 Affymetrix HG-U133A probes
-- **Labels:** Distant metastasis within 5 years (106 positive, 180 negative)
+- **Content:** 286 breast tumour samples x 22,283 Affymetrix HG-U133A probes
+- **Labels:** Bone metastasis within 5 years (69 positive / 217 negative)
 - **Download:** Automated on first `python run_pipeline.py`
 
 ---
 
-## Phase 2 (next month — not implemented yet)
+## Phase 1 Results (complete)
 
-- External validation on a second independent cohort
-- Genetic / evolutionary algorithm search
-- Gene interaction network (pairwise scoring)
-- MPI / OpenMP C-level HPC
-- Full written report with statistical analysis
+- Best single gene: **CD44** (AUC = 0.721, p = 8.5e-7)
+- Greedy signature peak: **AUC = 0.594** at 20 genes (held-out test set)
+- GPU speedup: **up to 5.4x** faster than sequential at N=2,000 candidates
+- CPU parallel (joblib): slower than sequential for this dataset size — demonstrates
+  that HPC requires the right hardware for the right problem size
+
+## Phase 2 (in progress)
+
+- [x] Repository reorganization (`src/phase1/`, `src/phase2/`)
+- [ ] Genetic Algorithm search engine (target: Sep 4)
+- [ ] Biological pathway integration via gene interaction graph (target: Sep 10)
