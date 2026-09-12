@@ -122,10 +122,15 @@ def main(args: argparse.Namespace) -> None:
 
     # [7] Phase 2 -- Genetic Algorithm
     _banner(f"[7/7] Phase 2: Genetic Algorithm (sequential mode, {GA_SIGNATURE_SIZE} genes)")
+    
+    # The GA operates strictly on the 500 candidate genes, not all 11,045.
+    X_train_cands = prep["X_train"][:, cand_idx]
+    X_test_cands  = prep["X_test"][:, cand_idx]
+    
     ga_results = run_ga(
-        prep["X_train"], prep["y_train"],
-        prep["X_test"],  prep["y_test"],
-        cand_idx,
+        X_train_cands, prep["y_train"],
+        X_test_cands,  prep["y_test"],
+        cand_ids,
         mode="sequential",
     )
     ga_results.to_csv(RESULTS_DIR / "ga_results.csv", index=False)

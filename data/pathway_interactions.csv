@@ -1,0 +1,106 @@
+gene_a,gene_b,pathway,interaction_type,source
+CD44,ITGA6,ECM-Receptor Interaction,co-expression-cancer,KEGG hsa04512
+CD44,FSCN1,ECM-Receptor Interaction,co-activation,KEGG hsa04512
+CD44,MMP11,ECM-Receptor Interaction,downstream-activation,KEGG hsa05205
+CD44,LAMA5,ECM-Receptor Interaction,receptor-ligand,KEGG hsa04512
+CD44,COL10A1,ECM-Receptor Interaction,downstream-activation,KEGG hsa04512
+CD44,COL11A1,ECM-Receptor Interaction,downstream-activation,KEGG hsa04512
+ITGA6,LAMA5,ECM-Receptor Interaction,receptor-ligand,KEGG hsa04512
+ITGA6,COL10A1,ECM-Receptor Interaction,receptor-ligand,KEGG hsa04512
+ITGA6,COL11A1,ECM-Receptor Interaction,receptor-ligand,KEGG hsa04512
+ITGA6,MMP11,Invasion Pathway,downstream-activation,KEGG hsa05205
+FSCN1,MMP11,Invasion Pathway,co-expression-cancer,PMID:23303785
+MMP11,COL10A1,ECM Remodelling,downstream-activation,KEGG hsa04512
+MMP11,COL11A1,ECM Remodelling,downstream-activation,KEGG hsa04512
+HLA-DMA,HLA-DRA,MHC Class II Antigen Presentation,complex-partner,KEGG hsa04612
+HLA-DMA,HLA-DRB1,MHC Class II Antigen Presentation,complex-partner,KEGG hsa04612
+HLA-DMA,HLA-DRB6,MHC Class II Antigen Presentation,complex-partner,KEGG hsa04612
+HLA-DMA,CD74,MHC Class II Antigen Presentation,chaperone-binding,KEGG hsa04612
+HLA-DRA,HLA-DRB1,MHC Class II Antigen Presentation,heterodimer,KEGG hsa04612
+HLA-DRA,HLA-DRB6,MHC Class II Antigen Presentation,heterodimer,KEGG hsa04612
+HLA-DRA,CD74,MHC Class II Antigen Presentation,chaperone-binding,KEGG hsa04612
+HLA-DRB1,CD74,MHC Class II Antigen Presentation,chaperone-binding,KEGG hsa04612
+HLA-DRB1,CD4,MHC Class II Antigen Presentation,co-receptor,KEGG hsa04612
+HLA-DRB6,CD4,MHC Class II Antigen Presentation,co-receptor,KEGG hsa04612
+CD4,LCK,T-Cell Receptor Signaling,phosphorylation,KEGG hsa04660
+CD4,FYN,T-Cell Receptor Signaling,phosphorylation,KEGG hsa04660
+CD8A,LCK,T-Cell Receptor Signaling,phosphorylation,KEGG hsa04660
+CD8A,CD8B,T-Cell Receptor Signaling,heterodimer,KEGG hsa04660
+CD8B,LCK,T-Cell Receptor Signaling,phosphorylation,KEGG hsa04660
+LCK,FYN,T-Cell Receptor Signaling,co-activation,KEGG hsa04660
+LCK,LYN,BCR Signaling,functional-analog,KEGG hsa04662
+FYN,LYN,Src Kinase Family,shared-substrate,KEGG hsa04660
+CD3E,LCK,T-Cell Receptor Signaling,complex-partner,KEGG hsa04660
+CD3E,FYN,T-Cell Receptor Signaling,co-activation,KEGG hsa04660
+CD3E,CD4,T-Cell Receptor Signaling,complex-partner,KEGG hsa04660
+GZMB,PRF1,NK and T-Cell Cytotoxicity,co-secreted,KEGG hsa04650
+GZMB,FAS,NK and T-Cell Cytotoxicity,downstream-target,KEGG hsa04650
+PRF1,NKG7,NK Cell Activation,co-expression,PMID:20498832
+FAS,FADD,Apoptosis Signaling,direct-binding,KEGG hsa04210
+FAS,GADD45A,Apoptosis Signaling,upstream-activation,KEGG hsa04115
+FADD,GADD45A,Apoptosis Signaling,downstream-target,KEGG hsa04210
+CD27,CD38,B-Cell Activation,co-expression-immune,KEGG hsa04662
+CD27,IKZF1,Lymphocyte Differentiation,transcription-factor,KEGG hsa04660
+CD38,IKZF1,B-Cell Activation,co-expression-immune,KEGG hsa04662
+IKZF1,IL2RG,Lymphocyte Signaling,upstream-regulator,KEGG hsa04660
+IL2RG,LCK,Cytokine-JAK-STAT,downstream-kinase,KEGG hsa04630
+TFF1,TFF3,TFF Family Signaling,paralog-co-expression,PMID:11395416
+TFF1,AGR2,Breast Cancer ER+ Signaling,co-regulated-ESR1,PMID:17050672
+TFF3,AGR2,Breast Cancer ER+ Signaling,co-regulated-ESR1,PMID:17050672
+TFF1,GATA3,Breast Cancer ER+ Signaling,transcription-target,PMID:20551946
+TFF3,GATA3,Breast Cancer ER+ Signaling,transcription-target,PMID:20551946
+AGR2,GATA3,Breast Cancer ER+ Signaling,co-regulated,PMID:20551946
+GATA3,SCUBE2,Breast Cancer ER+ Signaling,co-expression-luminal,PMID:20228190
+GATA3,SFRP1,WNT Pathway Regulation,transcription-target,PMID:21829392
+SCUBE2,TFF1,Breast Cancer ER+ Signaling,co-expression-luminal,PMID:20228190
+IGF1R,INPPL1,PI3K-AKT Signaling,downstream-target,KEGG hsa04151
+IGF1R,PDGFRB,Growth Factor Receptor Family,co-expression,KEGG hsa04151
+PDGFRB,INPPL1,PI3K-AKT Signaling,downstream-regulation,KEGG hsa04151
+PDGFRB,MAP3K1,MAPK Signaling,upstream-kinase,KEGG hsa04010
+MAP3K1,MAPK9,MAPK Signaling,phosphorylation-cascade,KEGG hsa04010
+CXCR4,CD44,Chemokine Signaling,co-expression-cancer,KEGG hsa04062
+CXCR4,LCK,Chemokine-T Cell Crosstalk,signaling-crosstalk,KEGG hsa04062
+CXCR4,CXCL13,Chemokine Signaling,receptor-ligand,KEGG hsa04062
+CXCL13,CD27,B-Cell Chemoattraction,chemokine-receptor,KEGG hsa04062
+CXCL1,CXCR4,Chemokine Signaling,related-chemokine,KEGG hsa04062
+VTCN1,CD8A,Immune Checkpoint,inhibitory-ligand,PMID:18632553
+VTCN1,CD4,Immune Checkpoint,inhibitory-ligand,PMID:18632553
+VTCN1,LCK,Immune Checkpoint,downstream-inhibition,PMID:18632553
+SFRP1,WNT5A,WNT Pathway,antagonist-binding,KEGG hsa04310
+NUAK1,GADD45A,Stress Response,co-activation,PMID:22002647
+SOD2,FDXR,Mitochondrial Oxidative Stress,mitochondrial-colocalization,PMID:12213813
+NOX4,SOD2,Oxidative Stress Response,ROS-regulation,PMID:19261625
+GSTP1,GSTO1,Glutathione Metabolism,paralog-functional,KEGG hsa00480
+HSPA1A,DNAJC12,Heat Shock Response,co-chaperone,KEGG hsa04141
+VPS16,VPS33A,HOPS Complex,complex-partner,PMID:12612091
+VPS16,VPS33B,HOPS Complex,complex-partner,PMID:12612091
+VPS16,VPS41,HOPS Complex,complex-partner,PMID:12612091
+VPS16,VPS45,HOPS Complex,complex-partner,PMID:12612091
+VPS33A,VPS41,HOPS Complex,complex-partner,PMID:12612091
+VPS33A,VPS45,HOPS Complex,complex-partner,PMID:12612091
+VPS33B,VPS41,HOPS Complex,complex-partner,PMID:12612091
+VPS33A,VPS28,ESCRT Complex,vesicle-transport,PMID:12612091
+VPS37C,VPS28,ESCRT Complex,complex-partner,PMID:15001577
+XYLT1,XYLT2,Proteoglycan Synthesis,paralog-functional,KEGG hsa00534
+NDUFA2,NDUFA4,Mitochondrial Complex I,complex-partner,KEGG hsa00190
+NDUFA2,NDUFA5,Mitochondrial Complex I,complex-partner,KEGG hsa00190
+NDUFA2,NDUFA8,Mitochondrial Complex I,complex-partner,KEGG hsa00190
+NDUFA4,NDUFA5,Mitochondrial Complex I,complex-partner,KEGG hsa00190
+NDUFA4,NDUFA8,Mitochondrial Complex I,complex-partner,KEGG hsa00190
+NDUFA5,NDUFA8,Mitochondrial Complex I,complex-partner,KEGG hsa00190
+UQCR11,UQCRQ,Mitochondrial Complex III,complex-partner,KEGG hsa00190
+SOD2,NDUFA2,Mitochondrial Oxidative Phosphorylation,co-localization,KEGG hsa00190
+LAMP3,CD74,Lysosome and Antigen Processing,co-localization,KEGG hsa04142
+LAMP3,HLA-DMA,Antigen Processing,co-localization,KEGG hsa04612
+CTBP2,ZNF217,Transcriptional Repression,co-repressor,PMID:16260608
+ZNF217,BCL11A,Transcriptional Regulation,co-expression-cancer,PMID:21339432
+SOCS3,IL2RG,JAK-STAT Signaling,negative-feedback,KEGG hsa04630
+SOCS3,LCK,JAK-STAT Signaling,downstream-inhibition,KEGG hsa04630
+TBK1,GADD45A,Innate Immunity and Stress,co-activation,PMID:18354169
+RUNX3,GADD45A,Tumor Suppression,transcription-target,PMID:15657428
+RUNX3,GATA3,Transcription Factor Network,co-expression-luminal,PMID:17898714
+ARRB2,CXCR4,GPCR Desensitization,arrestin-receptor,KEGG hsa04062
+ARRB2,IGF1R,Receptor Internalization,complex-partner,PMID:17277771
+E2F4,CCND2,Cell Cycle Regulation,downstream-target,KEGG hsa04110
+CCND2,CDK5RAP1,Cell Cycle,interaction,KEGG hsa04110
+ZFP36L1,ZFP36L2,mRNA Stability,paralog-functional,PMID:22699851

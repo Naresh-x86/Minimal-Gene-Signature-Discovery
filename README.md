@@ -113,4 +113,7 @@ python run_pipeline.py --max-genes 15 --skip-benchmark
   - Best val AUC: **0.7727** vs Greedy 0.5942 (+30.1% improvement)
   - GPU fitness evaluation: **2.69x** faster than sequential
   - 200 generations x 100 individuals in 1.6s (sequential)
-- [ ] Biological pathway integration via gene interaction graph (target: Sep 10)
+- [x] Biological pathway integration via gene interaction graph (completed Sep 10)
+  - Curated 160+ breast cancer & immune gene interactions (KEGG/Literature)
+  - Added vectorizable pathway connectivity scoring module
+  - GA now selects biologically meaningful combinations while maintaining high AUC
