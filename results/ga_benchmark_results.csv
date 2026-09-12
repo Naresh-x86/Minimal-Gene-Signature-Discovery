@@ -1,0 +1,4 @@
+mode,mean_s,std_s,speedup
+Sequential (1-core),0.001481,5.7e-05,1.0
+Parallel CPU (all cores),0.031319,0.000486,0.047
+GPU (NVIDIA GeForce RTX 4060 Laptop GPU),0.00055,0.000154,2.693
