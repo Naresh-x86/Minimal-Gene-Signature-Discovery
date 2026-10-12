@@ -299,6 +299,21 @@ def _fitness_gpu(population: np.ndarray,
 
 
 # =============================================================================
+# STEP 2D: C + OpenMP fitness evaluation (Phase 3)
+# =============================================================================
+
+def _fitness_c(population: np.ndarray,
+               X: np.ndarray,
+               y: np.ndarray) -> np.ndarray:
+    """
+    Score ALL 100 individuals using the compiled C + OpenMP kernel.
+    Passes NumPy memory directly to C with zero copying.
+    """
+    from src.phase3.cpp_search import evaluate_population_c
+    return evaluate_population_c(X, population, y)
+
+
+# =============================================================================
 # MAIN ENTRY POINT: run the full GA
 # =============================================================================
 
@@ -321,7 +336,7 @@ def run_ga(X_train: np.ndarray,
     cand_ids         : the 500 candidate gene names (strings)
                        (used for pathway biological scoring and final reporting)
     mode             : which HPC engine to use for fitness evaluation
-                       'sequential' | 'parallel' | 'gpu'
+                       'sequential' | 'parallel' | 'gpu' | 'c_openmp'
     n_jobs           : CPU cores for parallel mode (-1 = all cores)
     seed             : random seed (set for reproducibility)
 
@@ -342,7 +357,17 @@ def run_ga(X_train: np.ndarray,
     describe_graph(graph)
 
     # Choose the fitness evaluation function
-    if mode == "gpu" and TORCH_AVAILABLE:
+    if mode in ("c_openmp", "cpp", "c"):
+        try:
+            from src.phase3.cpp_search import get_num_threads
+            threads = get_num_threads()
+            _evaluate    = lambda pop: _fitness_c(pop, X_train, y_train)
+            device_label = f"C + OpenMP ({threads} threads)"
+        except Exception as e:
+            print(f"  [WARNING] C+OpenMP failed ({e}), falling back to sequential.")
+            _evaluate    = lambda pop: _fitness_sequential(pop, X_train, y_train)
+            device_label = "Sequential (1-core fallback)"
+    elif mode == "gpu" and TORCH_AVAILABLE:
         _evaluate    = lambda pop: _fitness_gpu(pop, X_train, y_train)
         device_label = f"GPU ({_GPU_NAME})"
     elif mode == "parallel":
