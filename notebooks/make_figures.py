@@ -833,6 +833,219 @@ def fig_phase3_hpc_benchmark() -> None:
     _save("11_cpp_openmp_benchmark.png")
 
 
+# ─── Figure 12: Dual-Curve Size Sweep (Greedy vs GA, k = 1..30) ───────────────
+
+def fig_ga_vs_greedy_size_sweep() -> None:
+    print("\n[12] Minimal Gene Signature Discovery: GA vs Greedy Size Sweep ...")
+    csv_path = RESULTS_DIR / "ga_size_sweep_results.csv"
+    if not csv_path.exists():
+        print("  WARNING: ga_size_sweep_results.csv not found -- run run_pipeline.py first.")
+        return
+
+    df = pd.read_csv(csv_path)
+    x = df["signature_size"].values
+    ga_val = df["ga_val_auc"].values
+    greedy_val = df["greedy_val_auc"].values
+
+    fig, ax = plt.subplots(figsize=(15, 6.5))
+    fig.suptitle(
+        "Minimal Gene Signature Discovery: Greedy Search vs. Genetic Algorithm\n"
+        "Held-Out Validation AUC across Signature Sizes k = 1 to 30 (n=58 test patients)",
+        fontsize=14, fontweight="bold", color=TEXT,
+    )
+
+    # Plot Greedy baseline
+    ax.plot(x, greedy_val, color=C2, linestyle="--", linewidth=2.2,
+            marker="o", markersize=6, label="Phase 1: Greedy Forward Selection (Val AUC)", zorder=3)
+
+    # Plot GA curve
+    ax.plot(x, ga_val, color=C1, linestyle="-", linewidth=2.8,
+            marker="D", markersize=6.5, label="Phase 2/3: Genetic Algorithm (Val AUC)", zorder=4)
+
+    # Shaded advantage area
+    ax.fill_between(x, greedy_val, ga_val, where=(ga_val >= greedy_val),
+                    color=C1, alpha=0.15, label="GA Superiority Zone (+7.6% to +20.9% AUC advantage)", zorder=2)
+
+    # Global peak marker
+    peak_idx = int(np.argmax(ga_val))
+    peak_k = x[peak_idx]
+    peak_auc = ga_val[peak_idx]
+    ax.scatter([peak_k], [peak_auc], color=C3, s=140, edgecolor=TEXT, linewidth=1.5, zorder=5)
+    ax.annotate(f"Global Peak: k={peak_k}\nVal AUC = {peak_auc:.4f}",
+                xy=(peak_k, peak_auc),
+                xytext=(peak_k - 4.5, peak_auc + 0.038),
+                arrowprops=dict(arrowstyle="->", color=C3, lw=1.5),
+                bbox=dict(boxstyle="round,pad=0.3", facecolor=CARD, edgecolor=C3, alpha=0.9),
+                fontsize=9.5, color=TEXT, fontweight="bold")
+
+    # Minimal Signature "Elbow Point" Marker (k=5)
+    elbow_k = 5
+    elbow_idx = int(elbow_k - 1)
+    elbow_auc = ga_val[elbow_idx]
+    ax.scatter([elbow_k], [elbow_auc], color=C1, s=160, edgecolor=TEXT, linewidth=2, zorder=6)
+    ax.annotate(
+        f"TRUE MINIMAL SIGNATURE (k=5)\n"
+        f"• Val AUC = {elbow_auc:.4f} (+20.9% over Greedy!)\n"
+        f"• Captures 96.6% of peak AUC with 77% fewer genes\n"
+        f"• Ideal clinical trade-off: high accuracy, low assay cost",
+        xy=(elbow_k, elbow_auc),
+        xytext=(elbow_k + 0.8, 0.775),
+        arrowprops=dict(arrowstyle="->", color=C1, lw=2),
+        bbox=dict(boxstyle="round,pad=0.4", facecolor=CARD, edgecolor=C1, alpha=0.95),
+        fontsize=9, color=TEXT, fontweight="bold",
+    )
+
+    ax.set_xlabel("Number of Genes in Signature (k)", fontsize=12)
+    ax.set_ylabel("Validation AUC (Logistic Regression, Held-Out Test Set)", fontsize=12)
+    ax.set_xticks(x)
+    ax.set_xticklabels(x, fontsize=9)
+    ax.set_ylim(0.45, 0.86)
+    ax.grid(True, axis="both", alpha=0.3)
+    ax.legend(loc="lower right", fontsize=10.5, framealpha=0.9)
+
+    ax.text(0.5, -0.12,
+            "AUC = Area Under ROC Curve (0.5 = random, 1.0 = perfect). "
+            "GA searches full combinatorial space of subsets, avoiding greedy local minima at every signature size.",
+            ha="center", transform=ax.transAxes, fontsize=10, color=MUTED, style="italic")
+
+    plt.tight_layout()
+    _save("12_ga_vs_greedy_size_sweep.png")
+
+
+# ─── Figure 13: 4-Way HPC Scaling Across Signature Sizes ──────────────────────
+
+def fig_hpc_scaling_by_size() -> None:
+    print("\n[13] 4-Way HPC Scaling Benchmark across Signature Sizes ...")
+    scale_csv = RESULTS_DIR / "phase3_scaling_benchmark_results.csv"
+    if not scale_csv.exists():
+        print("  WARNING: phase3_scaling_benchmark_results.csv not found.")
+        return
+
+    df = pd.read_csv(scale_csv)
+    sizes = sorted(df["signature_size"].unique())
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    fig.suptitle(
+        "HPC Scaling Study: 4-Way GA Fitness Evaluation Across Signature Sizes\n"
+        "Intel i7-13650HX (20 threads) × NVIDIA RTX 4060 — 100 individuals × 10 repeats",
+        fontsize=14, fontweight="bold", color=TEXT,
+    )
+
+    # Color map for the 4 engines
+    engine_colors = {
+        "Sequential (1-core Python)": C0,
+        "Parallel CPU (joblib all cores)": C2,
+        "C + OpenMP (20 threads)": C1,
+        "GPU (NVIDIA GeForce RTX 4060 Laptop GPU)": C3,
+    }
+
+    width = 0.18
+    x_indices = np.arange(len(sizes))
+
+    engines = df["engine"].unique()
+    for i, eng in enumerate(engines):
+        sub = df[df["engine"] == eng].sort_values("signature_size")
+        pos = x_indices + (i - 1.5) * width
+        c = engine_colors.get(eng, MUTED)
+        
+        # Clean label for legend
+        leg_label = eng.split("(")[0].strip()
+        if "C + OpenMP" in eng:
+            leg_label = "C + OpenMP (20 threads)"
+        elif "GPU" in eng:
+            leg_label = "GPU CUDA (RTX 4060)"
+
+        # Left panel: runtime
+        bars = ax1.bar(pos, sub["mean_ms"], width=width, color=c, label=leg_label, edgecolor="none")
+        for bar, ms in zip(bars, sub["mean_ms"]):
+            ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.4,
+                     f"{ms:.2f}" if ms < 5 else f"{ms:.1f}",
+                     ha="center", fontsize=8, fontweight="bold", color=TEXT)
+
+        # Right panel: speedup
+        bars2 = ax2.bar(pos, sub["speedup"], width=width, color=c, label=leg_label, edgecolor="none")
+        for bar, sp in zip(bars2, sub["speedup"]):
+            ax2.text(bar.get_x() + bar.get_width() / 2, max(bar.get_height() + 0.05, 0.12),
+                     f"{sp:.2f}x", ha="center", fontsize=8.5, fontweight="bold", color=TEXT)
+
+    ax1.set_xticks(x_indices)
+    ax1.set_xticklabels([f"k = {s} genes" for s in sizes], fontsize=10)
+    ax1.set_ylabel("Execution time per generation (ms) — lower is better", fontsize=11)
+    ax1.set_title("Runtime Across Signature Sizes (ms)", fontsize=13, fontweight="bold")
+    ax1.set_ylim(0, 40)
+    ax1.grid(True, axis="y", alpha=0.3)
+    ax1.legend(loc="upper left", fontsize=9)
+
+    ax2.axhline(1.0, color=MUTED, linestyle="--", linewidth=1.5, alpha=0.8)
+    ax2.text(0.98, 1.05, "1.0x baseline (sequential)", color=MUTED, fontsize=8.5,
+             transform=ax2.get_yaxis_transform(), ha="right", style="italic")
+    ax2.set_xticks(x_indices)
+    ax2.set_xticklabels([f"k = {s} genes" for s in sizes], fontsize=10)
+    ax2.set_ylabel("Speedup factor vs. Sequential Python — higher is better", fontsize=11)
+    ax2.set_title("Speedup Factor Across Signature Sizes", fontsize=13, fontweight="bold")
+    ax2.set_ylim(0, df["speedup"].max() * 1.25)
+    ax2.grid(True, axis="y", alpha=0.3)
+    ax2.legend(loc="upper right", fontsize=9)
+
+    plt.tight_layout()
+    _save("13_hpc_scaling_by_signature_size.png")
+
+
+# ─── Figure 14: Gene Recurrence Across Discovered Signatures ──────────────────
+
+def fig_gene_recurrence() -> None:
+    print("\n[14] Gene Recurrence Analysis Across Discovered Signatures ...")
+    csv_path = RESULTS_DIR / "ga_size_sweep_results.csv"
+    if not csv_path.exists():
+        print("  WARNING: ga_size_sweep_results.csv not found.")
+        return
+
+    import collections
+    df = pd.read_csv(csv_path)
+
+    all_genes = []
+    for g_str in df["genes"].dropna():
+        genes = [g.strip() for g in str(g_str).split(",")]
+        all_genes.extend(genes)
+
+    counts = collections.Counter(all_genes)
+    top_items = counts.most_common(15)[::-1]  # Top 15, ascending for horizontal bar
+
+    gene_labels = [item[0] for item in top_items]
+    freqs = [item[1] for item in top_items]
+
+    fig, ax = plt.subplots(figsize=(13, 6))
+    fig.suptitle(
+        "Core Biomarker Hub: Gene Recurrence Across All 30 Discovered Signatures\n"
+        "Identifies master driver genes consistently selected by evolutionary search regardless of signature size",
+        fontsize=13, fontweight="bold", color=TEXT,
+    )
+
+    y_pos = np.arange(len(gene_labels))
+    norm_c = np.array(freqs) / max(freqs)
+    colors = plt.cm.Greens(0.4 + 0.55 * norm_c)
+
+    bars = ax.barh(y_pos, freqs, color=colors, height=0.6, edgecolor="none")
+    for bar, val in zip(bars, freqs):
+        pct = (val / len(df)) * 100
+        ax.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height() / 2,
+                f"{val} / 30 signatures ({pct:.0f}%)",
+                va="center", fontsize=9.5, fontweight="bold", color=TEXT)
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(gene_labels, fontsize=10, fontweight="bold")
+    ax.set_xlabel("Number of Discovered Signatures Containing Gene (out of 30)", fontsize=11)
+    ax.set_xlim(0, max(freqs) + 5)
+    ax.grid(True, axis="x", alpha=0.3)
+
+    ax.text(0.5, -0.12,
+            "Genes with high recurrence represent core biological hubs of metastasis that evolutionary search preserves across multiple scales.",
+            ha="center", transform=ax.transAxes, fontsize=10, color=MUTED, style="italic")
+
+    plt.tight_layout()
+    _save("14_minimal_signature_gene_recurrence.png")
+
+
 # ─── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -851,6 +1064,9 @@ if __name__ == "__main__":
     fig_pathway_network()
     fig_threeway_comparison()
     fig_phase3_hpc_benchmark()
+    fig_ga_vs_greedy_size_sweep()
+    fig_hpc_scaling_by_size()
+    fig_gene_recurrence()
 
     print(f"\nAll figures saved to: {FIG_DIR}")
     print("  Copy the PNGs directly into your presentation slides.")

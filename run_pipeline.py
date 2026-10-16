@@ -145,11 +145,26 @@ def main(args: argparse.Namespace) -> None:
 
         # Phase 3: 4-Way HPC Benchmark (including C+OpenMP)
         try:
-            from src.phase3.benchmark_phase3 import run_phase3_benchmark
+            from src.phase3.benchmark_phase3 import run_phase3_benchmark, run_phase3_scaling_benchmark
             _banner("  Phase 3: 4-Way HPC benchmark (Sequential vs joblib vs GPU vs C+OpenMP)")
             run_phase3_benchmark(X_cands_train, prep["y_train"])
+            run_phase3_scaling_benchmark(X_cands_train, prep["y_train"])
         except Exception as e:
             print(f"  [Notice] Phase 3 benchmark skipped: {e}")
+
+    # [8] Minimal Gene Signature Discovery: GA Size Sweep (k = 1..max_genes)
+    sweep_results = None
+    if args.sweep_sizes:
+        from src.phase2.genetic_search import run_ga_size_sweep
+        _banner(f"[8/8] Minimal Gene Signature Discovery: GA Size Sweep (k = 1..{args.max_genes})")
+        sweep_results = run_ga_size_sweep(
+            X_train_cands, prep["y_train"],
+            X_test_cands,  prep["y_test"],
+            cand_ids,
+            max_size=args.max_genes,
+            generations_per_size=150,
+            mode=args.ga_mode,
+        )
 
     # Summary
     best_auc_greedy = seq_results["val_auc"].max()
@@ -165,6 +180,10 @@ def main(args: argparse.Namespace) -> None:
     print(f"  Candidates      : {len(cand_idx)} genes")
     print(f"  Greedy best AUC : {best_auc_greedy:.4f}  ({best_n_greedy} genes)")
     print(f"  GA best AUC     : {best_auc_ga:.4f}  ({GA_SIGNATURE_SIZE} genes)")
+    if sweep_results is not None:
+        best_sweep_row = sweep_results.loc[sweep_results["ga_val_auc"].idxmax()]
+        print(f"  Sweep best AUC  : {best_sweep_row['ga_val_auc']:.4f}  "
+              f"({int(best_sweep_row['signature_size'])} genes)")
     print(f"  Total time      : {total:.1f}s")
     print(f"\n  Outputs -> results/")
     print(f"\nNext: python notebooks/make_figures.py")
@@ -178,9 +197,17 @@ if __name__ == "__main__":
         help=f"Maximum signature size to explore (default: {MAX_SIGNATURE_SIZE})",
     )
     parser.add_argument(
-        "--ga-mode", type=str, default="sequential",
+        "--ga-mode", type=str, default="c_openmp",
         choices=["sequential", "parallel", "gpu", "c_openmp"],
         help="HPC engine for Genetic Algorithm fitness: sequential | parallel | gpu | c_openmp",
+    )
+    parser.add_argument(
+        "--sweep-sizes", action="store_true", default=True,
+        help="Run GA size sweep (k=1..max_genes) to discover true minimal gene signature",
+    )
+    parser.add_argument(
+        "--no-sweep-sizes", dest="sweep_sizes", action="store_false",
+        help="Disable GA size sweep",
     )
     parser.add_argument(
         "--skip-benchmark", action="store_true",

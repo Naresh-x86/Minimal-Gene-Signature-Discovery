@@ -131,6 +131,86 @@ def run_phase3_benchmark(X_train: np.ndarray,
     return df
 
 
+def run_phase3_scaling_benchmark(X_train: np.ndarray,
+                                 y_train: np.ndarray,
+                                 sizes: list = [5, 10, 20, 30],
+                                 n_repeats: int = 10) -> pd.DataFrame:
+    """
+    Measure how all 4 HPC implementations scale as signature size increases.
+
+    Evaluates signature sizes in `sizes` (e.g. 5, 10, 20, 30 genes) across:
+      1. Sequential (1-core Python)
+      2. Parallel CPU (joblib all cores)
+      3. C + OpenMP (20 native threads)
+      4. GPU CUDA (RTX 4060)
+
+    Saves to results/phase3_scaling_benchmark_results.csv
+    """
+    rng = np.random.default_rng(RANDOM_STATE)
+    n_cands = X_train.shape[1]
+    n_threads = get_num_threads()
+
+    print("\n" + "=" * 65)
+    print("  Phase 3 HPC Scaling Benchmark Across Signature Sizes")
+    print("=" * 65)
+    print(f"  Sizes tested: {sizes}")
+    print(f"  Repeats     : {n_repeats} per measurement\n")
+
+    records = []
+
+    for k in sizes:
+        # Generate fixed population of 100 signatures of size k
+        population = np.array([
+            rng.choice(n_cands, size=k, replace=False)
+            for _ in range(GA_POPULATION_SIZE)
+        ], dtype=np.int32)
+
+        modes = [
+            ("Sequential (1-core Python)", lambda: _fitness_sequential(population, X_train, y_train)),
+            ("Parallel CPU (joblib all cores)", lambda: _fitness_parallel(population, X_train, y_train, n_jobs=-1)),
+            (f"C + OpenMP ({n_threads} threads)", lambda: _fitness_c(population, X_train, y_train)),
+        ]
+        if TORCH_AVAILABLE:
+            modes.append((f"GPU ({_GPU_NAME})", lambda: _fitness_gpu(population, X_train, y_train)))
+
+        # Baseline time for this size
+        base_ms = 1.0
+
+        for idx, (label, fn) in enumerate(modes):
+            # Warmup
+            fn()
+            times = []
+            for _ in range(n_repeats):
+                t0 = time.perf_counter()
+                fn()
+                times.append(time.perf_counter() - t0)
+
+            mean_s = float(np.mean(times))
+            std_s = float(np.std(times))
+            mean_ms = mean_s * 1000.0
+            std_ms = std_s * 1000.0
+
+            if idx == 0:
+                base_ms = mean_ms
+
+            speedup = base_ms / mean_ms
+
+            records.append({
+                "signature_size": k,
+                "engine": label,
+                "mean_ms": round(mean_ms, 3),
+                "std_ms": round(std_ms, 3),
+                "speedup": round(speedup, 2),
+            })
+            print(f"  Size {k:>2d} | {label:<32}: {mean_ms:6.2f} ms ({speedup:5.2f}x)")
+
+    df_scale = pd.DataFrame(records)
+    out_scale_csv = RESULTS_DIR / "phase3_scaling_benchmark_results.csv"
+    df_scale.to_csv(out_scale_csv, index=False)
+    print(f"\n  Saved scaling benchmark: {out_scale_csv.name}\n")
+    return df_scale
+
+
 if __name__ == "__main__":
     from src.data_loader import get_data
     from src.preprocessing import preprocess
@@ -147,3 +227,4 @@ if __name__ == "__main__":
     y_train = prep["y_train"]
 
     run_phase3_benchmark(X_train_cands, y_train)
+    run_phase3_scaling_benchmark(X_train_cands, y_train)

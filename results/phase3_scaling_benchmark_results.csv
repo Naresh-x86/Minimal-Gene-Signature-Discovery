@@ -1,0 +1,17 @@
+signature_size,engine,mean_ms,std_ms,speedup
+5,Sequential (1-core Python),1.522,0.226,1.0
+5,Parallel CPU (joblib all cores),30.799,0.612,0.05
+5,C + OpenMP (20 threads),0.574,0.131,2.65
+5,GPU (NVIDIA GeForce RTX 4060 Laptop GPU),0.462,0.027,3.29
+10,Sequential (1-core Python),1.571,0.36,1.0
+10,Parallel CPU (joblib all cores),31.118,0.468,0.05
+10,C + OpenMP (20 threads),0.548,0.036,2.87
+10,GPU (NVIDIA GeForce RTX 4060 Laptop GPU),0.508,0.141,3.09
+20,Sequential (1-core Python),1.534,0.117,1.0
+20,Parallel CPU (joblib all cores),30.904,0.495,0.05
+20,C + OpenMP (20 threads),0.549,0.079,2.79
+20,GPU (NVIDIA GeForce RTX 4060 Laptop GPU),0.837,0.222,1.83
+30,Sequential (1-core Python),1.841,0.373,1.0
+30,Parallel CPU (joblib all cores),31.088,0.474,0.06
+30,C + OpenMP (20 threads),0.566,0.063,3.25
+30,GPU (NVIDIA GeForce RTX 4060 Laptop GPU),0.824,0.171,2.23
