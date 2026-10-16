@@ -1189,6 +1189,109 @@ def fig_external_validation() -> None:
     _save("15_external_cohort_validation.png")
 
 
+# ─── Figure 16: Simplified External Validation (Presentation-Ready) ───────────
+
+def fig_simplified_external_validation() -> None:
+    print("\n[16] Simplified External Validation (Slide-Ready) …")
+    csv_path = RESULTS_DIR / "external_validation_results.csv"
+    if not csv_path.exists():
+        print("  WARNING: external_validation_results.csv not found — skipping.")
+        return
+
+    df = pd.read_csv(csv_path)
+
+    BLUE_DISC = "#2563EB"   # Clean vivid blue
+    ORANGE_EXT = "#F97316"  # Warm friendly orange
+    RED_HIGH = "#EF4444"    # Soft bright red
+    BLUE_LOW = "#3B82F6"    # Soft bright blue
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5.8))
+    fig.suptitle(
+        "Testing Discovered Gene Signatures on Completely New Patients (684 Patients Total)",
+        fontsize=14, fontweight="bold", color=TEXT, y=1.03
+    )
+
+    # ─── Panel 1: Accuracy (ROC-AUC) ───
+    ax1.set_title("Model Accuracy Across Centers", fontsize=12.5, fontweight="bold", color=TEXT, pad=12)
+
+    eval_sigs = ["GA-5 (Core Hub)", "Single-Gene (RECQL4)", "GA-22 (Peak k=22)", "Greedy-5 Baseline"]
+    sig_labels = ["5-Gene Signature\n(GA Minimal)", "Single Gene\n(RECQL4)", "22-Gene Signature\n(GA Peak)", "5-Gene Baseline\n(Greedy)"]
+
+    x1 = np.arange(len(eval_sigs))
+    width1 = 0.35
+
+    sub_disc = df[df["cohort"] == "Discovery (GSE2034)"].set_index("signature")
+    sub_ext  = df[df["cohort"] == "Combined External (398 pts)"].set_index("signature")
+
+    aucs_disc = [sub_disc.loc[s, "auc"] for s in eval_sigs]
+    aucs_ext  = [sub_ext.loc[s, "auc"] for s in eval_sigs]
+
+    bars_disc = ax1.bar(x1 - width1/2, aucs_disc, width1, label="Original Patients (Rotterdam, 286)", color=BLUE_DISC, alpha=0.9, edgecolor="none", zorder=3)
+    bars_ext  = ax1.bar(x1 + width1/2, aucs_ext, width1, label="New External Patients (Mainz + Europe, 398)", color=ORANGE_EXT, alpha=0.9, edgecolor="none", zorder=3)
+
+    for bar, a in zip(bars_disc, aucs_disc):
+        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.015, f"{a:.2f}",
+                 ha="center", va="bottom", fontsize=10, fontweight="bold", color=BLUE_DISC)
+
+    for bar, a in zip(bars_ext, aucs_ext):
+        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.015, f"{a:.2f}",
+                 ha="center", va="bottom", fontsize=10, fontweight="bold", color="#C2410C")
+
+    ax1.axhline(0.50, color="#94A3B8", linestyle="--", linewidth=1.2, label="Random Guess (0.50)", zorder=2)
+    ax1.set_xticks(x1)
+    ax1.set_xticklabels(sig_labels, fontsize=10)
+    ax1.set_ylabel("Accuracy Score (AUC)", fontsize=11, fontweight="bold", color=TEXT)
+    ax1.set_ylim(0, 1.05)
+    ax1.legend(loc="upper left", fontsize=9, framealpha=0.95)
+    ax1.grid(True, axis="y", linestyle="--", alpha=0.4, zorder=1)
+
+    # ─── Panel 2: Relapse Rate by Risk Group (Risk Stratification) ───
+    ax2.set_title("Actual Cancer Relapse Rate (5-Gene Signature)", fontsize=12.5, fontweight="bold", color=TEXT, pad=12)
+
+    cohort_display = [
+        ("Discovery (GSE2034)", "Rotterdam\n(Original)"),
+        ("External 1: Mainz (GSE11121)", "Mainz\n(Germany)"),
+        ("External 2: TRANSBIG (GSE7390)", "TRANSBIG\n(Europe)"),
+        ("Combined External (398 pts)", "All New Patients\n(Combined)"),
+    ]
+
+    x2 = np.arange(len(cohort_display))
+    width2 = 0.35
+
+    rates_low = []
+    rates_high = []
+
+    for c_key, _ in cohort_display:
+        row = df[(df["signature"] == "GA-5 (Core Hub)") & (df["cohort"] == c_key)].iloc[0]
+        rates_low.append(row["rate_low_risk"] * 100)
+        rates_high.append(row["rate_high_risk"] * 100)
+
+    bars_low = ax2.bar(x2 - width2/2, rates_low, width2, label="Predicted Low Risk", color=BLUE_LOW, alpha=0.9, edgecolor="none", zorder=3)
+    bars_high = ax2.bar(x2 + width2/2, rates_high, width2, label="Predicted High Risk", color=RED_HIGH, alpha=0.9, edgecolor="none", zorder=3)
+
+    for bar, r in zip(bars_low, rates_low):
+        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.0, f"{r:.1f}%",
+                 ha="center", va="bottom", fontsize=10, fontweight="bold", color="#1D4ED8")
+
+    for bar, r in zip(bars_high, rates_high):
+        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.0, f"{r:.1f}%",
+                 ha="center", va="bottom", fontsize=10, fontweight="bold", color="#B91C1C")
+
+    ax2.set_xticks(x2)
+    ax2.set_xticklabels([d[1] for d in cohort_display], fontsize=10)
+    ax2.set_ylabel("Cancer Relapse Rate (%)", fontsize=11, fontweight="bold", color=TEXT)
+    ax2.set_ylim(0, 52)
+    ax2.legend(loc="upper left", fontsize=9.5, framealpha=0.95)
+    ax2.grid(True, axis="y", linestyle="--", alpha=0.4, zorder=1)
+
+    fig.text(0.5, -0.04, 
+             "Left: Accuracy comparison between training patients and new external patients.   |   Right: High-Risk patients consistently suffer higher relapse rates across every hospital center.",
+             ha="center", fontsize=10, color=MUTED, style="italic")
+
+    plt.tight_layout()
+    _save("16_external_validation_simplified.png")
+
+
 # ─── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1211,6 +1314,7 @@ if __name__ == "__main__":
     fig_hpc_scaling_by_size()
     fig_gene_recurrence()
     fig_external_validation()
+    fig_simplified_external_validation()
 
     print(f"\nAll figures saved to: {FIG_DIR}")
     print("  Copy the PNGs directly into your presentation slides.")
