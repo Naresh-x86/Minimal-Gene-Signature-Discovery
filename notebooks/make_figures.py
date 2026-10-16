@@ -737,6 +737,102 @@ def fig_threeway_comparison() -> None:
     _save("10_threeway_auc_comparison.png")
 
 
+# ─── Figure 11: Phase 3 HPC Benchmark (C+OpenMP vs Sequential vs joblib vs GPU) ─
+
+def fig_phase3_hpc_benchmark() -> None:
+    print("\n[11] Phase 3 C+OpenMP 4-Way HPC Benchmark ...")
+    bench_path = RESULTS_DIR / "phase3_hpc_benchmark_results.csv"
+    if not bench_path.exists():
+        print("  WARNING: phase3_hpc_benchmark_results.csv not found -- run src/phase3/benchmark_phase3.py first.")
+        return
+
+    df = pd.read_csv(bench_path)
+
+    # Simplified display labels for slides
+    clean_labels = []
+    for mode in df["mode"]:
+        if "Sequential" in mode:
+            clean_labels.append("Sequential\n(1-core Python)")
+        elif "Parallel CPU" in mode:
+            clean_labels.append("CPU Parallel\n(joblib all cores)")
+        elif "C + OpenMP" in mode:
+            clean_labels.append("C + OpenMP\n(20 native threads)")
+        elif "GPU" in mode:
+            clean_labels.append("GPU CUDA\n(RTX 4060)")
+        else:
+            clean_labels.append(mode)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    fig.suptitle(
+        "Phase 3 HPC Study: 4-Way GA Fitness Evaluation Benchmark\n"
+        "Intel i7-13650HX (14 cores / 20 threads)  ×  NVIDIA RTX 4060  ×  100 signatures  ×  20 genes",
+        fontsize=14, fontweight="bold", color=TEXT,
+    )
+
+    x = np.arange(len(df))
+    runtime_colors = [C0, C2, C1, C3]
+
+    # ── Left: Runtime per generation (ms) ──
+    bars1 = ax1.bar(x, df["mean_ms"], color=runtime_colors, width=0.5, edgecolor="none")
+    for bar, ms in zip(bars1, df["mean_ms"]):
+        height = bar.get_height()
+        ax1.text(bar.get_x() + bar.get_width() / 2,
+                 height + (1.0 if height > 5 else 0.4),
+                 f"{ms:.2f} ms",
+                 ha="center", fontsize=11, fontweight="bold", color=TEXT)
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(clean_labels, fontsize=10)
+    ax1.set_ylabel("Execution time per generation (ms) — lower is better", fontsize=11)
+    ax1.set_title("Runtime Comparison (Lower is Better)", fontsize=13, fontweight="bold")
+    ax1.set_ylim(0, max(df["mean_ms"]) * 1.18)
+    ax1.grid(True, axis="y", alpha=0.3)
+
+    # Annotate joblib penalty
+    joblib_idx = 1
+    ax1.annotate("20x SLOWER!\n(Python multiprocessing\nserialization overhead)",
+                 xy=(joblib_idx, df.loc[joblib_idx, "mean_ms"]),
+                 xytext=(joblib_idx + 0.35, df.loc[joblib_idx, "mean_ms"] * 0.75),
+                 arrowprops=dict(arrowstyle="->", color=C2, lw=1.5),
+                 fontsize=9, color=C2, fontweight="bold")
+
+    # ── Right: Speedup over Sequential Baseline ──
+    speedups = df["speedup"].tolist()
+    speedup_colors = [MUTED if s == 1.0 else (C2 if s < 1.0 else C1) for s in speedups]
+
+    bars2 = ax2.bar(x, speedups, color=speedup_colors, width=0.5, edgecolor="none")
+    for bar, s in zip(bars2, speedups):
+        y_pos = bar.get_height()
+        va = "bottom" if y_pos >= 0.2 else "bottom"
+        ax2.text(bar.get_x() + bar.get_width() / 2,
+                 max(y_pos + 0.08, 0.15),
+                 f"{s:.2f}x",
+                 ha="center", va=va, fontsize=12, fontweight="bold", color=TEXT)
+
+    ax2.axhline(1.0, color=MUTED, linewidth=1.5, linestyle="--", alpha=0.8)
+    ax2.text(0.02, 1.05, "1.0x baseline (sequential)", color=MUTED, fontsize=9,
+             transform=ax2.get_yaxis_transform(), style="italic")
+
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(clean_labels, fontsize=10)
+    ax2.set_ylabel("Speedup factor vs. Sequential Python — higher is better", fontsize=11)
+    ax2.set_title("Speedup over Sequential Baseline", fontsize=13, fontweight="bold")
+    ax2.set_ylim(0, max(speedups) * 1.25)
+    ax2.grid(True, axis="y", alpha=0.3)
+
+    # Annotate C+OpenMP victory
+    c_idx = 2
+    ax2.annotate("FASTEST (3.31x)!\n• Zero-copy NumPy memory\n• Native OpenMP threads\n• No Python GIL\n• No process serialization",
+                 xy=(c_idx, speedups[c_idx]),
+                 xytext=(c_idx - 0.95, 2.1),
+                 arrowprops=dict(arrowstyle="->", color=C1, lw=1.5),
+                 bbox=dict(boxstyle="round,pad=0.4", facecolor=CARD, edgecolor=C1, alpha=0.9),
+                 fontsize=8.5, color=TEXT, fontweight="bold")
+
+    plt.tight_layout()
+    _save("11_cpp_openmp_benchmark.png")
+
+
 # ─── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -754,6 +850,7 @@ if __name__ == "__main__":
     fig_pathway_membership()
     fig_pathway_network()
     fig_threeway_comparison()
+    fig_phase3_hpc_benchmark()
 
     print(f"\nAll figures saved to: {FIG_DIR}")
     print("  Copy the PNGs directly into your presentation slides.")

@@ -1,0 +1,5 @@
+mode,mean_ms,std_ms,mean_s,std_s,speedup
+Sequential (1-core Python),1.561,0.065,0.001561,6.5e-05,1.0
+Parallel CPU (joblib all cores),30.905,0.502,0.030905,0.000502,0.05
+C + OpenMP (20 threads),0.472,0.056,0.000472,5.6e-05,3.31
+GPU (NVIDIA GeForce RTX 4060 Laptop GPU),0.562,0.36,0.000562,0.00036,2.78

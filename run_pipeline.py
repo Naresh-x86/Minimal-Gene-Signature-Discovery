@@ -121,7 +121,7 @@ def main(args: argparse.Namespace) -> None:
         run_benchmark()
 
     # [7] Phase 2 -- Genetic Algorithm
-    _banner(f"[7/7] Phase 2: Genetic Algorithm (sequential mode, {GA_SIGNATURE_SIZE} genes)")
+    _banner(f"[7/7] Phase 2: Genetic Algorithm ({args.ga_mode} mode, {GA_SIGNATURE_SIZE} genes)")
     
     # The GA operates strictly on the 500 candidate genes, not all 11,045.
     X_train_cands = prep["X_train"][:, cand_idx]
@@ -131,7 +131,7 @@ def main(args: argparse.Namespace) -> None:
         X_train_cands, prep["y_train"],
         X_test_cands,  prep["y_test"],
         cand_ids,
-        mode="sequential",
+        mode=args.ga_mode,
     )
     ga_results.to_csv(RESULTS_DIR / "ga_results.csv", index=False)
     print(f"  Saved: ga_results.csv")
@@ -142,6 +142,14 @@ def main(args: argparse.Namespace) -> None:
         X_cands_train = prep["X_train"][:, cand_idx]
         ga_bench = run_ga_benchmark(X_cands_train, prep["y_train"])
         ga_bench.to_csv(RESULTS_DIR / "ga_benchmark_results.csv", index=False)
+
+        # Phase 3: 4-Way HPC Benchmark (including C+OpenMP)
+        try:
+            from src.phase3.benchmark_phase3 import run_phase3_benchmark
+            _banner("  Phase 3: 4-Way HPC benchmark (Sequential vs joblib vs GPU vs C+OpenMP)")
+            run_phase3_benchmark(X_cands_train, prep["y_train"])
+        except Exception as e:
+            print(f"  [Notice] Phase 3 benchmark skipped: {e}")
 
     # Summary
     best_auc_greedy = seq_results["val_auc"].max()
@@ -168,6 +176,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-genes", type=int, default=MAX_SIGNATURE_SIZE,
         help=f"Maximum signature size to explore (default: {MAX_SIGNATURE_SIZE})",
+    )
+    parser.add_argument(
+        "--ga-mode", type=str, default="sequential",
+        choices=["sequential", "parallel", "gpu", "c_openmp"],
+        help="HPC engine for Genetic Algorithm fitness: sequential | parallel | gpu | c_openmp",
     )
     parser.add_argument(
         "--skip-benchmark", action="store_true",
