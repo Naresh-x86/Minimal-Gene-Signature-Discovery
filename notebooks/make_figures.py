@@ -19,6 +19,14 @@ Output (in results/figures/)
 import sys
 from pathlib import Path
 
+# Force UTF-8 on Windows
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
@@ -1046,6 +1054,141 @@ def fig_gene_recurrence() -> None:
     _save("14_minimal_signature_gene_recurrence.png")
 
 
+# ─── Figure 15: External Cohort Validation ────────────────────────────────────
+
+def fig_external_validation() -> None:
+    print("\n[15] External Cohort Validation …")
+    import pickle
+    csv_path = RESULTS_DIR / "external_validation_results.csv"
+    pkl_path = RESULTS_DIR / "external_validation_detailed.pkl"
+
+    if not csv_path.exists() or not pkl_path.exists():
+        print("  WARNING: external_validation_results.csv or pkl not found — skipping.")
+        return
+
+    df = pd.read_csv(csv_path)
+    with open(pkl_path, "rb") as f:
+        detailed = pickle.load(f)
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(19, 6.2))
+    fig.suptitle(
+        "External Cohort Validation Across 3 Independent European Patient Cohorts (684 Patients Total)\n"
+        "Testing Discovered Gene Signatures Out-of-Distribution: GSE2034 (Rotterdam), GSE11121 (Mainz), and GSE7390 (TRANSBIG)",
+        fontsize=13.5, fontweight="bold", color=TEXT, y=1.02
+    )
+
+    # ─── Panel A: ROC Curves for 5-Gene Core Hub ───
+    sig_name = "GA-5 (Core Hub)"
+    cohort_colors = {
+        "Discovery (GSE2034)": (C0, "-"),
+        "External 1: Mainz (GSE11121)": (C1, "-"),
+        "External 2: TRANSBIG (GSE7390)": (C3, "-"),
+        "Combined External (398 pts)": (C4, "--"),
+    }
+
+    ax1.set_title("Panel A: 5-Gene Minimal Signature ROC Curves\n(SLC35E3, NTM, RECQL4, TNFRSF10C, CPB1)", fontsize=11, fontweight="bold")
+    for c_name, (col, ls) in cohort_colors.items():
+        entry = detailed.get((sig_name, c_name))
+        if entry:
+            auc_val = entry["auc"]
+            label_text = f"{c_name.split(':')[0]} (AUC={auc_val:.3f}, n={entry['n_patients']})"
+            ax1.plot(entry["fpr"], entry["tpr"], color=col, linestyle=ls, linewidth=2.2, label=label_text)
+
+    ax1.plot([0, 1], [0, 1], color="gray", linestyle=":", linewidth=1.5, label="Random Chance (AUC=0.500)")
+    ax1.set_xlabel("False Positive Rate (1 - Specificity)", fontsize=10.5)
+    ax1.set_ylabel("True Positive Rate (Sensitivity)", fontsize=10.5)
+    ax1.legend(loc="lower right", fontsize=9.2, framealpha=0.95)
+    ax1.grid(True, linestyle="--", alpha=0.5)
+    ax1.set_xlim(-0.02, 1.02)
+    ax1.set_ylim(-0.02, 1.02)
+
+    # ─── Panel B: Multi-Signature AUC Comparison with 95% CIs ───
+    ax2.set_title("Panel B: Generalization Across Signatures (AUC ± 95% CI)\nComparing In-Cohort Fit vs External Generalizability", fontsize=11, fontweight="bold")
+    eval_sigs = ["GA-5 (Core Hub)", "Single-Gene (RECQL4)", "GA-22 (Peak k=22)", "Greedy-5 Baseline"]
+    sig_labels = ["GA 5-Gene Hub", "RECQL4 (Single)", "GA 22-Gene Peak", "Greedy 5-Gene"]
+
+    x = np.arange(len(eval_sigs))
+    width = 0.35
+
+    for i, (c_key, c_label, col) in enumerate([
+        ("Discovery (GSE2034)", "Discovery (GSE2034, n=286)", C0),
+        ("Combined External (398 pts)", "Combined External (n=398)", C4),
+    ]):
+        sub_df = df[df["cohort"] == c_key].set_index("signature")
+        aucs = [sub_df.loc[s, "auc"] if s in sub_df.index else 0.5 for s in eval_sigs]
+        ci_lows = [sub_df.loc[s, "ci_lower"] if s in sub_df.index else 0.5 for s in eval_sigs]
+        ci_highs = [sub_df.loc[s, "ci_upper"] if s in sub_df.index else 0.5 for s in eval_sigs]
+
+        yerr = [
+            [a - l for a, l in zip(aucs, ci_lows)],
+            [h - a for a, h in zip(aucs, ci_highs)]
+        ]
+
+        bars = ax2.bar(x + (i - 0.5) * width, aucs, width, yerr=yerr, capsize=4,
+                       label=c_label, color=col, alpha=0.88, edgecolor=BORDER)
+
+        for bar, a in zip(bars, aucs):
+            ax2.text(bar.get_x() + bar.get_width()/2, 0.25, f"{a:.3f}",
+                     ha="center", va="bottom", fontsize=8.8, fontweight="bold", color="white", rotation=90)
+
+    ax2.axhline(0.50, color="gray", linestyle=":", linewidth=1.5, label="Random Baseline (0.50)")
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(sig_labels, fontsize=9.5, fontweight="bold")
+    ax2.set_ylabel("ROC-AUC", fontsize=10.5)
+    ax2.set_ylim(0, 1.0)
+    ax2.legend(loc="upper right", fontsize=8.8, framealpha=0.95)
+    ax2.grid(True, axis="y", linestyle="--", alpha=0.5)
+
+    # ─── Panel C: Clinical Risk Stratification (Relapse Rate) ───
+    ax3.set_title("Panel C: Clinical Risk Stratification (5-Gene Hub)\nActual 5-Year Metastasis Rate by Model Risk Group", fontsize=11, fontweight="bold")
+
+    cohort_display = [
+        ("Discovery (GSE2034)", "GSE2034\n(Rotterdam)"),
+        ("External 1: Mainz (GSE11121)", "GSE11121\n(Mainz)"),
+        ("External 2: TRANSBIG (GSE7390)", "GSE7390\n(TRANSBIG)"),
+        ("Combined External (398 pts)", "Combined\nExternal"),
+    ]
+
+    x3 = np.arange(len(cohort_display))
+    w3 = 0.35
+
+    rates_high = []
+    rates_low = []
+    p_vals = []
+
+    for c_key, _ in cohort_display:
+        row = df[(df["signature"] == "GA-5 (Core Hub)") & (df["cohort"] == c_key)].iloc[0]
+        rates_high.append(row["rate_high_risk"] * 100)
+        rates_low.append(row["rate_low_risk"] * 100)
+        p_vals.append(row["p_value"])
+
+    bars_low = ax3.bar(x3 - w3/2, rates_low, w3, label="Predicted Low Risk", color="#2563EB", alpha=0.85, edgecolor=BORDER)
+    bars_high = ax3.bar(x3 + w3/2, rates_high, w3, label="Predicted High Risk", color="#DC2626", alpha=0.85, edgecolor=BORDER)
+
+    for bar, r in zip(bars_low, rates_low):
+        ax3.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.0, f"{r:.1f}%",
+                 ha="center", va="bottom", fontsize=8.5, fontweight="bold", color="#1E40AF")
+
+    for bar, r in zip(bars_high, rates_high):
+        ax3.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.0, f"{r:.1f}%",
+                 ha="center", va="bottom", fontsize=8.5, fontweight="bold", color="#991B1B")
+
+    for i, p in enumerate(p_vals):
+        p_text = f"p<0.001" if p < 0.001 else f"p={p:.3f}"
+        ax3.text(i, max(rates_high[i], rates_low[i]) + 6.5, p_text,
+                 ha="center", fontsize=8.2, color=MUTED, style="italic")
+
+    ax3.set_xticks(x3)
+    ax3.set_xticklabels([d[1] for d in cohort_display], fontsize=9.5, fontweight="bold")
+    ax3.set_ylabel("Observed Metastasis Rate (%)", fontsize=10.5)
+    ax3.set_ylim(0, 55)
+    ax3.legend(loc="upper left", fontsize=9, framealpha=0.95)
+    ax3.grid(True, axis="y", linestyle="--", alpha=0.5)
+
+    plt.tight_layout()
+    _save("15_external_cohort_validation.png")
+
+
 # ─── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1067,6 +1210,7 @@ if __name__ == "__main__":
     fig_ga_vs_greedy_size_sweep()
     fig_hpc_scaling_by_size()
     fig_gene_recurrence()
+    fig_external_validation()
 
     print(f"\nAll figures saved to: {FIG_DIR}")
     print("  Copy the PNGs directly into your presentation slides.")
