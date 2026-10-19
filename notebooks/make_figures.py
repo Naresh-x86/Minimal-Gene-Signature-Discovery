@@ -1292,6 +1292,141 @@ def fig_simplified_external_validation() -> None:
     _save("16_external_validation_simplified.png")
 
 
+# ─── Figure 17: Multi-Model Benchmarks & Class Imbalance ──────────────────────
+
+def fig_model_benchmarks_and_imbalance() -> None:
+    print("\n[17] Multi-Model Benchmarks & Class Imbalance …")
+    import pickle
+    csv_path = RESULTS_DIR / "model_benchmark_results.csv"
+    pkl_path = RESULTS_DIR / "model_benchmark_detailed.pkl"
+
+    if not csv_path.exists() or not pkl_path.exists():
+        print("  WARNING: model_benchmark_results.csv or pkl not found — skipping.")
+        return
+
+    df = pd.read_csv(csv_path)
+    with open(pkl_path, "rb") as f:
+        detailed = pickle.load(f)
+
+    BLUE = "#2563EB"
+    ORANGE = "#F97316"
+    GREEN = "#10B981"
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(19, 5.8))
+    fig.suptitle(
+        "Addressing Class Imbalance & Multi-Model Benchmarking (5-Gene Minimal Signature)",
+        fontsize=14, fontweight="bold", color=TEXT, y=1.02
+    )
+
+    # ─── Panel 1: Multi-Model Accuracy Across Centers ───
+    ax1.set_title("Panel A: Model Family Comparison (ROC-AUC)", fontsize=11.5, fontweight="bold", color=TEXT, pad=10)
+
+    models_compare = [
+        ("Logistic Regression (Balanced)", "Logistic Reg\n(Balanced)"),
+        ("Ridge Classifier (Balanced)", "Ridge Reg\n(Balanced)"),
+        ("Random Forest (Balanced)", "Random Forest\n(Balanced)"),
+        ("K-Nearest Neighbors (KNN, k=5)", "K-Nearest\nNeighbors (KNN)"),
+    ]
+
+    x1 = np.arange(len(models_compare))
+    w1 = 0.35
+
+    sub_disc = df[df["cohort"] == "Discovery (GSE2034)"].set_index("model")
+    sub_ext  = df[df["cohort"] == "Combined External (398 pts)"].set_index("model")
+
+    auc_d = [sub_disc.loc[m[0], "roc_auc"] for m in models_compare]
+    auc_e = [sub_ext.loc[m[0], "roc_auc"] for m in models_compare]
+
+    bars_d = ax1.bar(x1 - w1/2, auc_d, w1, label="Discovery (Rotterdam, 286)", color=BLUE, alpha=0.9, zorder=3)
+    bars_e = ax1.bar(x1 + w1/2, auc_e, w1, label="External (Mainz+Europe, 398)", color=ORANGE, alpha=0.9, zorder=3)
+
+    for bar, val in zip(bars_d, auc_d):
+        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.015, f"{val:.2f}",
+                 ha="center", va="bottom", fontsize=9.5, fontweight="bold", color=BLUE)
+
+    for bar, val in zip(bars_e, auc_e):
+        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.015, f"{val:.2f}",
+                 ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#C2410C")
+
+    ax1.axhline(0.50, color="#94A3B8", linestyle="--", linewidth=1.2, label="Random Guess (0.50)", zorder=2)
+    ax1.set_xticks(x1)
+    ax1.set_xticklabels([m[1] for m in models_compare], fontsize=9.5)
+    ax1.set_ylabel("ROC-AUC Score", fontsize=10.5, fontweight="bold", color=TEXT)
+    ax1.set_ylim(0, 1.08)
+    ax1.legend(loc="upper left", fontsize=8.8, framealpha=0.95)
+    ax1.grid(True, axis="y", linestyle="--", alpha=0.4, zorder=1)
+
+    # ─── Panel 2: Precision-Recall Curves (Minority Class Enrichment) ───
+    ax2.set_title("Panel B: Precision-Recall Curves (Relapse Class)", fontsize=11.5, fontweight="bold", color=TEXT, pad=10)
+
+    pr_disc = detailed[("Logistic Regression (Balanced)", "Discovery (GSE2034)")]
+    pr_ext  = detailed[("Logistic Regression (Balanced)", "Combined External (398 pts)")]
+
+    ax2.plot(pr_disc["recall"], pr_disc["precision"], color=BLUE, linewidth=2.4,
+             label=f"Discovery Cohort (PR-AUC = {pr_disc['pr_auc']:.2f})")
+    ax2.plot(pr_ext["recall"], pr_ext["precision"], color=ORANGE, linewidth=2.4,
+             label=f"External Cohorts (PR-AUC = {pr_ext['pr_auc']:.2f})")
+
+    ax2.axhline(0.24, color=BLUE, linestyle=":", alpha=0.7, label="Discovery Baseline Prevalence (0.24)")
+    ax2.axhline(0.27, color=ORANGE, linestyle=":", alpha=0.7, label="External Baseline Prevalence (0.27)")
+
+    ax2.set_xlabel("Recall (Sensitivity for Relapse)", fontsize=10.5, fontweight="bold", color=TEXT)
+    ax2.set_ylabel("Precision (Positive Predictive Value)", fontsize=10.5, fontweight="bold", color=TEXT)
+    ax2.set_xlim(0, 1.02)
+    ax2.set_ylim(0, 1.02)
+    ax2.legend(loc="upper right", fontsize=8.8, framealpha=0.95)
+    ax2.grid(True, linestyle="--", alpha=0.4)
+
+    # ─── Panel 3: Impact of Class Weighting on Sensitivity & Balanced Accuracy ───
+    ax3.set_title("Panel C: Impact of Class Weighting on Relapse Recall", fontsize=11.5, fontweight="bold", color=TEXT, pad=10)
+
+    cohort_labels = ["Discovery\n(Rotterdam)", "External Cohorts\n(Mainz + Europe)"]
+    x3 = np.arange(len(cohort_labels))
+    w3 = 0.35
+
+    sens_unweighted = [
+        df[(df["model"] == "Logistic Regression (Unweighted)") & (df["cohort"] == "Discovery (GSE2034)")]["sensitivity"].iloc[0] * 100,
+        df[(df["model"] == "Logistic Regression (Unweighted)") & (df["cohort"] == "Combined External (398 pts)")]["sensitivity"].iloc[0] * 100,
+    ]
+
+    sens_balanced = [
+        df[(df["model"] == "Logistic Regression (Balanced)") & (df["cohort"] == "Discovery (GSE2034)")]["sensitivity"].iloc[0] * 100,
+        df[(df["model"] == "Logistic Regression (Balanced)") & (df["cohort"] == "Combined External (398 pts)")]["sensitivity"].iloc[0] * 100,
+    ]
+
+    b1 = ax3.bar(x3 - w3/2, sens_unweighted, w3, label="Standard (Unweighted)", color="#94A3B8", alpha=0.85, zorder=3)
+    b2 = ax3.bar(x3 + w3/2, sens_balanced, w3, label="Cost-Sensitive ('balanced')", color=GREEN, alpha=0.9, zorder=3)
+
+    for bar, val in zip(b1, sens_unweighted):
+        ax3.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5, f"{val:.1f}%",
+                 ha="center", va="bottom", fontsize=10, fontweight="bold", color="#475569")
+
+    for bar, val in zip(b2, sens_balanced):
+        ax3.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5, f"{val:.1f}%",
+                 ha="center", va="bottom", fontsize=10, fontweight="bold", color="#065F46")
+
+    ax3.annotate("+36.3%", xy=(x3[0], 70), xytext=(x3[0], 80),
+                 ha="center", fontsize=9.5, fontweight="bold", color="#065F46",
+                 arrowprops=dict(arrowstyle="->", color="#065F46", lw=1.5))
+    ax3.annotate("+35.2% (4x)", xy=(x3[1], 50), xytext=(x3[1], 65),
+                 ha="center", fontsize=9.5, fontweight="bold", color="#065F46",
+                 arrowprops=dict(arrowstyle="->", color="#065F46", lw=1.5))
+
+    ax3.set_xticks(x3)
+    ax3.set_xticklabels(cohort_labels, fontsize=10)
+    ax3.set_ylabel("Minority Relapse Sensitivity / Recall (%)", fontsize=10.5, fontweight="bold", color=TEXT)
+    ax3.set_ylim(0, 95)
+    ax3.legend(loc="upper left", fontsize=9, framealpha=0.95)
+    ax3.grid(True, axis="y", linestyle="--", alpha=0.4, zorder=1)
+
+    fig.text(0.5, -0.05,
+             "Panel A: Benchmark across 4 model families.   |   Panel B: PR curves showing strong minority enrichment over random prevalence.   |   Panel C: Balanced weighting jumps relapse detection from 12% to 47.2%.",
+             ha="center", fontsize=10, color=MUTED, style="italic")
+
+    plt.tight_layout()
+    _save("17_model_benchmarks_and_imbalance.png")
+
+
 # ─── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1315,6 +1450,7 @@ if __name__ == "__main__":
     fig_gene_recurrence()
     fig_external_validation()
     fig_simplified_external_validation()
+    fig_model_benchmarks_and_imbalance()
 
     print(f"\nAll figures saved to: {FIG_DIR}")
     print("  Copy the PNGs directly into your presentation slides.")
